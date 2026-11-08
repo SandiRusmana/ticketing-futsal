@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+/* Design token dari Stitch. Otomatis jadi class: bg-brand, text-ink, font-display, dst. */
+@theme {
+  --font-sans: "Work Sans", system-ui, sans-serif;
+  --font-display: "Archivo", "Work Sans", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-brand: #15803d;
+  --color-brand-dark: #116b32;
+  --color-ink: #191c1b;
+  --color-paper: #f8faf9;
+  --color-surface: #f2f4f3;
+  --color-line: #c3ccc7;
+  --color-danger: #b4232c;
+  --color-danger-soft: #fddcdf;
+  --color-ok-soft: #dcf5e4;
+}
+
+@layer base {
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+  }
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+  }
+}
