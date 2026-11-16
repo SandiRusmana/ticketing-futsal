@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Design token dari Stitch. Otomatis jadi class: bg-brand, text-ink, font-display, dst. */
+/* Design token dari Stitch untuk FutsalTix Cianjur */
 @theme {
   --font-sans: "Work Sans", system-ui, sans-serif;
   --font-display: "Archivo", "Work Sans", sans-serif;
@@ -8,20 +8,96 @@
 
   --color-brand: #15803d;
   --color-brand-dark: #116b32;
+  --color-brand-light: #dcfce7;
   --color-ink: #191c1b;
   --color-paper: #f8faf9;
   --color-surface: #f2f4f3;
   --color-line: #c3ccc7;
-  --color-danger: #b4232c;
+  --color-danger: #dc2626;
   --color-danger-soft: #fddcdf;
   --color-ok-soft: #dcf5e4;
 }
 
 @layer base {
+  html {
+    font-size: 16px;
+  }
   body {
-    @apply bg-paper font-sans text-ink antialiased;
+    @apply bg-paper font-sans text-ink antialiased selection:bg-brand selection:text-white text-base;
   }
-  h1, h2, h3 {
-    @apply font-display tracking-tight;
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight font-black;
   }
+}
+
+/* Custom Scrollbar Rapi untuk Fixed App Shell Workspace */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f2f4f3;
+  border-left: 2px solid #191c1b;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #15803d;
+  border: 1.5px solid #191c1b;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #116b32;
+}
+
+/* Pola diagonal pitch stripes untuk latar belakang visual court */
+.pitch-stripes {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(25, 28, 27, 0.03),
+    rgba(25, 28, 27, 0.03) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+
+/* Animasi garis laser pemindai (scanner beam) untuk tampilan Operator Gate */
+@keyframes laserBeam {
+  0% {
+    top: 5%;
+    opacity: 0.8;
+  }
+  50% {
+    top: 92%;
+    opacity: 1;
+  }
+  100% {
+    top: 5%;
+    opacity: 0.8;
+  }
+}
+
+.animate-scan-laser {
+  animation: laserBeam 2.4s ease-in-out infinite;
+}
+
+/* Grid latar belakang pemindai reticle */
+.scanner-grid-bg {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(21, 128, 61, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(21, 128, 61, 0.12) 1px, transparent 1px);
+}
+
+/* Bayangan khas neo-brutalism */
+.shadow-brutal {
+  box-shadow: 3px 3px 0px #191c1b;
+}
+
+.shadow-brutal-lg {
+  box-shadow: 5px 5px 0px #191c1b;
+}
+
+.shadow-brutal-sm {
+  box-shadow: 2px 2px 0px #191c1b;
 }

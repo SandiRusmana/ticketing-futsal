@@ -5,91 +5,214 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\MatchTicketQuota;
 use App\Models\Order;
+use App\Models\TurnstileLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 class OrderController extends Controller
 {
-    // POST /api/orders/checkout (Proses Kunci Kuota 10 Menit)
+    public function releaseExpiredOrders()
+    {
+        $expiredOrders = Order::where('status', 'PENDING')
+            ->where('expires_at', '<', now())
+            ->get();
+
+        foreach ($expiredOrders as $order) {
+            DB::transaction(function () use ($order) {
+                $quota = MatchTicketQuota::where('match_id', $order->match_id)->lockForUpdate()->first();
+                if ($quota) {
+                    $quota->available_quota += $order->quantity;
+                    $quota->held_quota = max(0, $quota->held_quota - $order->quantity);
+                    $quota->save();
+                }
+                $order->update(['status' => 'EXPIRED']);
+            });
+        }
+    }
+
     public function checkout(Request $request)
     {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
+        $this->releaseExpiredOrders();
+
+        $data = $request->validate([
             'match_id' => 'required|exists:matches,id',
-            'total_tickets' => 'required|integer|min:1|max:5', // Aturan Bisnis: Maks 5 Tiket
+            'quantity' => 'required|integer|min:1|max:5',
+            'payment_method' => 'nullable|string',
         ]);
 
-        return DB::transaction(function () use ($request) {
-            // 1. Cek & Kunci baris kuota (Pessimistic Locking biar aman dari race condition)
-            $quota = MatchTicketQuota::where('match_id', $request->match_id)
+        return DB::transaction(function () use ($request, $data) {
+            $quota = MatchTicketQuota::where('match_id', $data['match_id'])
                 ->lockForUpdate()
-                ->first();
+                ->firstOrFail();
 
-            if (!$quota || $quota->available_quota < $request->total_tickets) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Sisa kuota tiket tidak mencukupi atau sudah habis.'
-                ], 400);
+            if ($quota->sale_status !== 'OPEN') {
+                return response()->json(['message' => 'Penjualan tiket untuk laga ini sudah ditutup'], 422);
             }
 
-            // 2. Kunci Kuota (Held Quota +N, Available Quota -N)
-            $quota->held_quota += $request->total_tickets;
-            $quota->available_quota -= $request->total_tickets;
+            if ($quota->available_quota < $data['quantity']) {
+                return response()->json(['message' => 'Kuota tiket tidak mencukupi'], 422);
+            }
+
+            $quota->available_quota -= $data['quantity'];
+            $quota->held_quota += $data['quantity'];
             $quota->save();
 
-            // 3. Hitung Total Bayar & Set Timer Expiration (10 Menit dari sekarang)
-            $totalAmount = $quota->ticket_price * $request->total_tickets;
-            $expiresAt = Carbon::now()->addMinutes(10);
-            $orderCode = 'FTX-' . strtoupper(Str::random(8));
+            $adminFee = 2500;
+            $totalAmount = ($quota->price * $data['quantity']) + $adminFee;
+            $randomNum = rand(100000, 999999);
 
-            // 4. Buat Record Order (Status: PENDING)
             $order = Order::create([
-                'order_code' => $orderCode,
-                'user_id' => $request->user_id,
-                'match_id' => $request->match_id,
-                'total_tickets' => $request->total_tickets,
+                'order_code' => 'FTX-' . $randomNum,
+                'user_id' => $request->user()->id,
+                'match_id' => $data['match_id'],
+                'quantity' => $data['quantity'],
+                'unit_price' => $quota->price,
+                'admin_fee' => $adminFee,
                 'total_amount' => $totalAmount,
-                'order_status' => 'pending',
-                'expires_at' => $expiresAt,
+                'status' => 'PENDING',
+                'payment_method' => $data['payment_method'] ?? 'QRIS',
+                'snap_token' => 'SNAP-' . Str::random(24),
+                'expires_at' => now()->addMinutes(10),
+                'qr_payload' => 'TIX-GGM-' . $randomNum . '-' . strtoupper(Str::random(4)),
             ]);
 
             return response()->json([
-                'status' => 'success',
-                'message' => 'Tiket berhasil di-hold selama 10 menit. Silakan selesaikan pembayaran.',
-                'data' => [
-                    'order' => $order,
-                    'timer_expiration_seconds' => 600, // 10 Menit
-                ]
+                'message' => 'Kuota berhasil dikunci selama 10 menit',
+                'order' => $order->load(['match.homeTeam', 'match.awayTeam', 'match.category']),
             ], 201);
         });
     }
 
-    // POST /api/orders/release-expired (Mekanisme Auto-Release Kuota Kedaluwarsa)
-    public function releaseExpiredOrders()
+    public function pay(Request $request, $id)
     {
-        DB::transaction(function () {
-            // Cari semua order PENDING yang sudah melewati batas waktu expires_at
-            $expiredOrders = Order::where('order_status', 'pending')
-                ->where('expires_at', '<', Carbon::now())
-                ->get();
+        $order = Order::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
 
-            foreach ($expiredOrders as $order) {
-                $quota = MatchTicketQuota::where('match_id', $order->match_id)->first();
-                if ($quota) {
-                    // Kembalikan stok yang di-hold ke available_quota
-                    $quota->held_quota = max(0, $quota->held_quota - $order->total_tickets);
-                    $quota->available_quota += $order->total_tickets;
-                    $quota->save();
-                }
+        if ($order->status === 'PAID') {
+            return response()->json(['message' => 'Pesanan sudah dibayar', 'order' => $order]);
+        }
 
-                // Ubah status order jadi EXPIRED
-                $order->order_status = 'expired';
-                $order->save();
+        if ($order->status === 'EXPIRED' || ($order->expires_at && $order->expires_at->isPast())) {
+            $this->releaseExpiredOrders();
+            return response()->json(['message' => 'Waktu pembayaran habis, silakan pesan ulang'], 422);
+        }
+
+        return DB::transaction(function () use ($request, $order) {
+            $quota = MatchTicketQuota::where('match_id', $order->match_id)->lockForUpdate()->first();
+            if ($quota) {
+                $quota->held_quota = max(0, $quota->held_quota - $order->quantity);
+                $quota->save();
             }
-        });
 
-        return response()->json(['status' => 'success', 'message' => 'Expired orders checked & quota released.']);
+            $order->update([
+                'status' => 'PAID',
+                'payment_method' => $request->input('payment_method', $order->payment_method ?? 'QRIS'),
+                'paid_at' => now(),
+            ]);
+
+            return response()->json([
+                'message' => 'Pembayaran berhasil! E-Ticket siap digunakan.',
+                'order' => $order->load(['match.homeTeam', 'match.awayTeam', 'match.category']),
+            ]);
+        });
+    }
+
+    public function myTickets(Request $request)
+    {
+        $this->releaseExpiredOrders();
+
+        $orders = Order::with(['match.homeTeam', 'match.awayTeam', 'match.category'])
+            ->where('user_id', $request->user()->id)
+            ->latest()
+            ->get();
+
+        return response()->json(['orders' => $orders]);
+    }
+
+    public function verifyGate(Request $request)
+    {
+        $data = $request->validate([
+            'qr_payload' => 'required|string',
+            'gate_name' => 'nullable|string',
+        ]);
+
+        $operator = $request->user();
+        $gateName = $data['gate_name'] ?? $operator->assigned_gate ?? 'GATE A - TRIBUN UTARA';
+        $code = trim($data['qr_payload']);
+
+        $order = Order::with(['user', 'match.homeTeam', 'match.awayTeam', 'match.category'])
+            ->where('qr_payload', $code)
+            ->orWhere('order_code', $code)
+            ->first();
+
+        if (!$order || $order->status !== 'PAID') {
+            $log = TurnstileLog::create([
+                'order_id' => $order?->id,
+                'operator_id' => $operator->id,
+                'scanned_code' => $code,
+                'gate_name' => $gateName,
+                'result' => 'INVALID',
+                'message' => 'Kode tiket tidak terdaftar atau belum dibayar',
+            ]);
+
+            return response()->json([
+                'status' => 'INVALID',
+                'message' => 'TIKET TIDAK VALID / BELUM LUNAS',
+                'log' => $log,
+            ], 404);
+        }
+
+        if ($order->is_checked_in) {
+            $log = TurnstileLog::create([
+                'order_id' => $order->id,
+                'operator_id' => $operator->id,
+                'scanned_code' => $code,
+                'gate_name' => $gateName,
+                'result' => 'DUPLICATE',
+                'message' => 'Tiket sudah dipakai masuk pada ' . $order->checked_in_at->format('H:i'),
+            ]);
+
+            return response()->json([
+                'status' => 'DUPLICATE',
+                'message' => 'TIKET SUDAH DIGUNAKAN (ANTI-DUPLIKAT)',
+                'order' => $order,
+                'log' => $log,
+            ], 409);
+        }
+
+        $order->update([
+            'is_checked_in' => true,
+            'checked_in_at' => now(),
+            'checked_in_by' => $operator->id,
+            'checked_in_gate' => $gateName,
+        ]);
+
+        $log = TurnstileLog::create([
+            'order_id' => $order->id,
+            'operator_id' => $operator->id,
+            'scanned_code' => $code,
+            'gate_name' => $gateName,
+            'result' => 'VALID',
+            'message' => 'Akses diizinkan untuk ' . $order->quantity . ' penonton (' . $order->user->name . ')',
+        ]);
+
+        return response()->json([
+            'status' => 'VALID',
+            'message' => 'AKSES DIIZINKAN — SILAKAN MASUK',
+            'order' => $order,
+            'log' => $log,
+        ]);
+    }
+
+    public function scanLogs()
+    {
+        $logs = TurnstileLog::with(['order.user', 'operator'])
+            ->latest()
+            ->take(20)
+            ->get();
+
+        return response()->json(['logs' => $logs]);
     }
 }

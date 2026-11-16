@@ -2,132 +2,165 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use App\Models\User;
-use App\Models\Tournament;
-use App\Models\TournamentCategory;
-use App\Models\Team;
-use App\Models\MatchDetail;
+use App\Models\FutsalMatch;
+use App\Models\MatchEvent;
 use App\Models\MatchTicketQuota;
+use App\Models\Team;
+use App\Models\TournamentCategory;
+use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 0. Disable foreign key checks & Truncate tabel lama biar gak bentrok
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        User::truncate();
-        Tournament::truncate();
-        TournamentCategory::truncate();
-        Team::truncate();
-        MatchDetail::truncate();
-        MatchTicketQuota::truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        // 1. Akun Default Testing
+        User::updateOrCreate(
+            ['email' => 'admin@futsaltix.id'],
+            [
+                'name' => 'Super Admin GGM',
+                'phone' => '081200000001',
+                'password' => Hash::make('password123'),
+                'role' => 'admin',
+            ]
+        );
 
-        // 1. Seed Users (Admin, Panitia, Penonton)
-        $admin = User::create([
-            'name' => 'Admin FutsalTix',
-            'email' => 'admin@futsaltix.com',
-            'password' => Hash::make('password123'),
-            'user_type' => 'admin',
-            'status' => 'active',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'operator@futsaltix.id'],
+            [
+                'name' => 'Operator Gate Utara',
+                'phone' => '081200000002',
+                'password' => Hash::make('password123'),
+                'role' => 'operator',
+                'assigned_gate' => 'GATE A - TRIBUN UTARA',
+            ]
+        );
 
-        $panitia = User::create([
-            'name' => 'Panitia GGM Cianjur',
-            'email' => 'panitia@futsaltix.com',
-            'password' => Hash::make('password123'),
-            'user_type' => 'panitia',
-            'status' => 'active',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'suporter@futsaltix.id'],
+            [
+                'name' => 'Sandi Rusmana',
+                'phone' => '081234567890',
+                'password' => Hash::make('password123'),
+                'role' => 'user',
+                'school_affiliation' => 'SMKN 1 Cianjur',
+            ]
+        );
 
-        $penonton = User::create([
-            'name' => 'Sandi Rusmana',
-            'email' => 'sandi@gmail.com',
-            'password' => Hash::make('password123'),
-            'user_type' => 'penonton',
-            'status' => 'active',
-        ]);
+        // 2. Kategori Divisi
+        $sd = TournamentCategory::create(['code' => 'SD', 'name' => 'Divisi SD / MI Sederajat', 'ticket_price' => 10000]);
+        $smp = TournamentCategory::create(['code' => 'SMP', 'name' => 'Divisi SMP / MTs Sederajat', 'ticket_price' => 15000]);
+        $sma = TournamentCategory::create(['code' => 'SMA', 'name' => 'Divisi SMA / SMK / MA Sederajat', 'ticket_price' => 20000]);
 
-        // 2. Seed Tournament
-        $tournament = Tournament::create([
-            'created_by' => $admin->id,
-            'title' => 'Cianjur Student Futsal Championship 2026',
-            'description' => 'Turnamen futsal terbesar antar pelajar SMP & SMA/SMK se-Kabupaten Cianjur.',
-            'status' => 'published',
-        ]);
+        // 3. Tim Sekolah Cianjur
+        $smansa = Team::create(['category_id' => $sma->id, 'name' => 'SMAN 1 Cianjur', 'short_name' => 'SMANSA', 'logo_color' => '#C6FF00']);
+        $smkn1 = Team::create(['category_id' => $sma->id, 'name' => 'SMKN 1 Cianjur', 'short_name' => 'ZIE', 'logo_color' => '#3B82F6']);
+        $man1 = Team::create(['category_id' => $sma->id, 'name' => 'MAN 1 Cianjur', 'short_name' => 'MANSA', 'logo_color' => '#10B981']);
+        $smanda = Team::create(['category_id' => $sma->id, 'name' => 'SMAN 2 Cianjur', 'short_name' => 'SMANDA', 'logo_color' => '#F59E0B']);
 
-        // 3. Seed Categories
-        $catSMA = TournamentCategory::create([
-            'tournament_id' => $tournament->id,
-            'category_name' => 'SMA/SMK',
-        ]);
+        $smpn1 = Team::create(['category_id' => $smp->id, 'name' => 'SMPN 1 Cianjur', 'short_name' => 'SPENSA', 'logo_color' => '#8B5CF6']);
+        $smpn2 = Team::create(['category_id' => $smp->id, 'name' => 'SMPN 2 Cianjur', 'short_name' => 'SPENDA', 'logo_color' => '#EC4899']);
 
-        $catSMP = TournamentCategory::create([
-            'tournament_id' => $tournament->id,
-            'category_name' => 'SMP',
-        ]);
+        $sdn1 = Team::create(['category_id' => $sd->id, 'name' => 'SDN Ibu Jenab 1', 'short_name' => 'IBUJENAB', 'logo_color' => '#EF4444']);
+        $sdn2 = Team::create(['category_id' => $sd->id, 'name' => 'SDN Solokpandan', 'short_name' => 'SOLOK', 'logo_color' => '#06B6D4']);
 
-        // 4. Seed Teams
-        $smkn1 = Team::create(['team_name' => 'SMKN 1 Cianjur', 'school_name' => 'SMK Negeri 1 Cianjur']);
-        $sman2 = Team::create(['team_name' => 'SMAN 2 Cianjur', 'school_name' => 'SMA Negeri 2 Cianjur']);
-        $sman1 = Team::create(['team_name' => 'SMAN 1 Cianjur', 'school_name' => 'SMA Negeri 1 Cianjur']);
-        $smkn2 = Team::create(['team_name' => 'SMKN 2 Cianjur', 'school_name' => 'SMK Negeri 2 Cianjur']);
-        $smpn1 = Team::create(['team_name' => 'SMPN 1 Cianjur', 'school_name' => 'SMP Negeri 1 Cianjur']);
-        $smpn4 = Team::create(['team_name' => 'SMPN 4 Cianjur', 'school_name' => 'SMP Negeri 4 Cianjur']);
+        // 4. Jadwal Pertandingan + Kuota Tiket
+        $matchesData = [
+            [
+                'category_id' => $sma->id,
+                'home_team_id' => $smansa->id,
+                'away_team_id' => $smkn1->id,
+                'match_time' => now()->addDays(1)->setTime(19, 30),
+                'stage' => 'QUARTER_FINAL',
+                'bracket_slot' => 'QF-1',
+                'status' => 'UPCOMING',
+                'quota' => 500,
+                'available' => 142,
+                'price' => 20000,
+            ],
+            [
+                'category_id' => $sma->id,
+                'home_team_id' => $man1->id,
+                'away_team_id' => $smanda->id,
+                'match_time' => now(),
+                'stage' => 'QUARTER_FINAL',
+                'bracket_slot' => 'QF-2',
+                'status' => 'LIVE',
+                'home_score' => 3,
+                'away_score' => 2,
+                'home_fouls' => 3,
+                'away_fouls' => 4,
+                'match_minute' => "32' Babak 2",
+                'quota' => 500,
+                'available' => 18,
+                'price' => 20000,
+            ],
+            [
+                'category_id' => $smp->id,
+                'home_team_id' => $smpn1->id,
+                'away_team_id' => $smpn2->id,
+                'match_time' => now()->addDays(1)->setTime(15, 00),
+                'stage' => 'SEMI_FINAL',
+                'bracket_slot' => 'SF-1',
+                'status' => 'UPCOMING',
+                'quota' => 400,
+                'available' => 265,
+                'price' => 15000,
+            ],
+            [
+                'category_id' => $sd->id,
+                'home_team_id' => $sdn1->id,
+                'away_team_id' => $sdn2->id,
+                'match_time' => now()->subHours(3),
+                'stage' => 'FINAL',
+                'bracket_slot' => 'FINAL',
+                'status' => 'FINISHED',
+                'home_score' => 4,
+                'away_score' => 1,
+                'home_fouls' => 2,
+                'away_fouls' => 3,
+                'match_minute' => 'FT',
+                'winner_team_id' => $sdn1->id,
+                'quota' => 350,
+                'available' => 0,
+                'price' => 10000,
+            ],
+        ];
 
-        // 5. Seed Matches & Ticket Quotas
-        $match1 = MatchDetail::create([
-            'category_id' => $catSMA->id,
-            'home_team_id' => $smkn1->id,
-            'away_team_id' => $sman2->id,
-            'match_date' => '2026-11-14 15:30:00',
-            'venue' => 'GGM Cianjur',
-            'status' => 'scheduled',
-        ]);
+        foreach ($matchesData as $data) {
+            $match = FutsalMatch::create([
+                'category_id' => $data['category_id'],
+                'home_team_id' => $data['home_team_id'],
+                'away_team_id' => $data['away_team_id'],
+                'match_time' => $data['match_time'],
+                'stage' => $data['stage'],
+                'bracket_slot' => $data['bracket_slot'],
+                'status' => $data['status'],
+                'home_score' => $data['home_score'] ?? 0,
+                'away_score' => $data['away_score'] ?? 0,
+                'home_fouls' => $data['home_fouls'] ?? 0,
+                'away_fouls' => $data['away_fouls'] ?? 0,
+                'match_minute' => $data['match_minute'] ?? null,
+                'winner_team_id' => $data['winner_team_id'] ?? null,
+            ]);
 
-        MatchTicketQuota::create([
-            'match_id' => $match1->id,
-            'total_quota' => 200,
-            'held_quota' => 0,
-            'available_quota' => 200,
-            'ticket_price' => 15000.00,
-        ]);
+            MatchTicketQuota::create([
+                'match_id' => $match->id,
+                'total_quota' => $data['quota'],
+                'available_quota' => $data['available'],
+                'held_quota' => 0,
+                'price' => $data['price'],
+                'sale_status' => $data['status'] === 'FINISHED' ? 'CLOSED' : 'OPEN',
+            ]);
 
-        $match2 = MatchDetail::create([
-            'category_id' => $catSMA->id,
-            'home_team_id' => $sman1->id,
-            'away_team_id' => $smkn2->id,
-            'match_date' => '2026-11-14 18:30:00',
-            'venue' => 'GGM Cianjur',
-            'status' => 'scheduled',
-        ]);
-
-        MatchTicketQuota::create([
-            'match_id' => $match2->id,
-            'total_quota' => 150,
-            'held_quota' => 0,
-            'available_quota' => 150,
-            'ticket_price' => 15000.00,
-        ]);
-
-        $match3 = MatchDetail::create([
-            'category_id' => $catSMP->id,
-            'home_team_id' => $smpn1->id,
-            'away_team_id' => $smpn4->id,
-            'match_date' => '2026-11-15 14:00:00',
-            'venue' => 'GGM Cianjur',
-            'status' => 'scheduled',
-        ]);
-
-        MatchTicketQuota::create([
-            'match_id' => $match3->id,
-            'total_quota' => 100,
-            'held_quota' => 0,
-            'available_quota' => 100,
-            'ticket_price' => 10000.00,
-        ]);
+            if ($data['status'] === 'LIVE') {
+                MatchEvent::create(['match_id' => $match->id, 'team_id' => $man1->id, 'player_name' => 'Rizky Pratama', 'event_type' => 'GOAL', 'minute' => 6]);
+                MatchEvent::create(['match_id' => $match->id, 'team_id' => $smanda->id, 'player_name' => 'Fajar Nugraha', 'event_type' => 'GOAL', 'minute' => 14]);
+                MatchEvent::create(['match_id' => $match->id, 'team_id' => $man1->id, 'player_name' => 'Ilham Maulana', 'event_type' => 'GOAL', 'minute' => 23]);
+                MatchEvent::create(['match_id' => $match->id, 'team_id' => $smanda->id, 'player_name' => 'Dika Saputra', 'event_type' => 'GOAL', 'minute' => 27]);
+                MatchEvent::create(['match_id' => $match->id, 'team_id' => $man1->id, 'player_name' => 'Rizky Pratama', 'event_type' => 'GOAL', 'minute' => 30]);
+            }
+        }
     }
 }

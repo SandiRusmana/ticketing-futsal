@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Team extends Model
 {
-    protected $guarded = ['id'];
-    public $timestamps = false;
+    protected $fillable = ['category_id', 'name', 'short_name', 'logo_color'];
+
+    public function category()
+    {
+        return $this->belongsTo(TournamentCategory::class, 'category_id');
+    }
 }

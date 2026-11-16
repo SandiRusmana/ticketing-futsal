@@ -2,16 +2,17 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Socialite\Contracts\User as SocialiteUser;
+use Laravel\Sanctum\HasApiTokens; // 1. IMPORT HASAPITOKENS
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable; // 2. PASANG HASAPITOKENS DI SINI
 
     /**
      * The attributes that are mass assignable.
@@ -19,10 +20,14 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+    'name',
+    'email',
+    'phone',
+    'password',
+    'role',
+    'school_affiliation',
+    'assigned_gate',
+];
 
     /**
      * The attributes that should be hidden for serialization.

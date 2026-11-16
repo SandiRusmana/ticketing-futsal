@@ -6,12 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class MatchTicketQuota extends Model
 {
-    protected $table = 'match_ticket_quotas';
-    public $timestamps = false;
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'match_id',
+        'total_quota',
+        'available_quota',
+        'held_quota',
+        'price',
+        'sale_status',
+    ];
 
     public function match()
     {
-        return $this->belongsTo(MatchDetail::class, 'match_id');
+        return $this->belongsTo(FutsalMatch::class, 'match_id');
     }
 }
