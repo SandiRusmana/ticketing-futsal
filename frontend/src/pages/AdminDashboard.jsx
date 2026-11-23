@@ -1196,7 +1196,7 @@ export default function AdminDashboard() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b-2 border-ink gap-3">
                     <div>
                       <span className="bg-brand text-white px-3 py-1 font-mono text-xs sm:text-sm font-black uppercase border border-ink">
-                        PIALA BUPATI CIANJUR 2026
+                        LIGA FUTSAL PELAJAR (LFP) CIANJUR 2026
                       </span>
                       <h2 className="font-display text-2xl sm:text-3xl font-black uppercase text-ink mt-2">
                         BAGAN BABAK GUGUR &amp; PAIRING BRACKET
@@ -1400,7 +1400,7 @@ export default function AdminDashboard() {
                       <option value="">-- Pilih Tim Home --</option>
                       {teams.map((t) => (
                         <option key={t.id} value={t.id}>
-                          {t.name} ({t.category})
+                          {t.name} ({t.group ? 'Grup ' + t.group : (t.category?.name || 'LFP 2026')})
                         </option>
                       ))}
                     </select>
@@ -1433,7 +1433,7 @@ export default function AdminDashboard() {
                       <option value="">-- Pilih Tim Away --</option>
                       {teams.map((t) => (
                         <option key={t.id} value={t.id}>
-                          {t.name} ({t.category})
+                          {t.name} ({t.group ? 'Grup ' + t.group : (t.category?.name || 'LFP 2026')})
                         </option>
                       ))}
                     </select>

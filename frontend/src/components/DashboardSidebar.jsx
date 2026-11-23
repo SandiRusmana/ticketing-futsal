@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ArrowLeftRight
 } from 'lucide-react'
+import { useNavigation } from '../context/useNavigation.js'
 
 /**
  * DashboardSidebar.jsx
@@ -28,7 +29,17 @@ export default function DashboardSidebar({
   isMobileOpen = false,
   setIsMobileOpen,
 }) {
+  const { currentUser } = useNavigation()
   const isAdmin = role === 'admin'
+  const displayName = currentUser?.name || (isAdmin ? 'Super Admin GGM' : 'Kang Farhan (Operator GGM)')
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || (isAdmin ? 'SA' : 'KF')
+  const userRoleTitle = currentUser?.assigned_gate || currentUser?.school_affiliation || (isAdmin ? 'Super Admin HQ' : 'Meja 01 Court A')
 
   // Daftar menu navigasi internal
   const menuItems = [
@@ -192,14 +203,14 @@ export default function DashboardSidebar({
           <div className="p-2.5 sm:p-3.5 bg-[#131d2e] border border-white/20 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
               <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-none border border-black bg-brand text-white flex items-center justify-center font-black text-sm sm:text-base shrink-0 shadow-sm">
-                {isAdmin ? 'SR' : 'KF'}
+                {initials}
               </div>
               <div className="min-w-0">
                 <p className="font-display font-black text-sm sm:text-base text-white truncate">
-                  {isAdmin ? 'Sandi Rusmana' : 'Kang Farhan'}
+                  {displayName}
                 </p>
                 <span className="font-mono text-[11px] sm:text-sm text-gray-300 block truncate font-bold">
-                  {isAdmin ? 'Super Admin HQ' : 'Meja 01 Court A'}
+                  {userRoleTitle}
                 </span>
               </div>
             </div>

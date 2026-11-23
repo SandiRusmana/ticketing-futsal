@@ -49,6 +49,7 @@ Route::get('/top-scorers', [MatchController::class, 'topScorers']);  // Top Scor
 // ==========================================
 Route::patch('/matches/{id}/score', [LiveScoreController::class, 'updateScore']);
 Route::post('/matches/{id}/events', [LiveScoreController::class, 'addEvent']);
+Route::delete('/matches/{id}/events/{eventId}', [LiveScoreController::class, 'deleteEvent']);
 Route::patch('/matches/{id}/toggle-sale', [MatchController::class, 'toggleTicketSale']);
 
 // ==========================================
@@ -75,5 +76,6 @@ Route::get('/my-tickets', [OrderController::class, 'myTickets']);
 // 6. DASHBOARD SUPER ADMIN GGM
 // ==========================================
 Route::get('/admin/summary', [AdminDashboardController::class, 'summary']);
-Route::get('/admin/operators', [AdminOperatorController::class, 'indexPending']);
+Route::get('/admin/operators', [AdminOperatorController::class, 'index']);
+Route::post('/admin/operators', [AdminOperatorController::class, 'store']);
 Route::post('/admin/operators/{id}/status', [AdminOperatorController::class, 'updateStatus']);

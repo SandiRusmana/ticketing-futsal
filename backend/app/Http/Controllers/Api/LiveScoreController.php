@@ -75,4 +75,31 @@ class LiveScoreController extends Controller
             'match' => $match->fresh(['category', 'homeTeam', 'awayTeam', 'events.team']),
         ], 201);
     }
+
+    public function deleteEvent($matchId, $eventId)
+    {
+        $match = FutsalMatch::findOrFail($matchId);
+        $event = MatchEvent::where('match_id', $match->id)->findOrFail($eventId);
+
+        if ($event->event_type === 'GOAL') {
+            if ($event->team_id == $match->home_team_id && $match->home_score > 0) {
+                $match->decrement('home_score');
+            } elseif ($event->team_id == $match->away_team_id && $match->away_score > 0) {
+                $match->decrement('away_score');
+            }
+        } elseif ($event->event_type === 'FOUL') {
+            if ($event->team_id == $match->home_team_id && $match->home_fouls > 0) {
+                $match->decrement('home_fouls');
+            } elseif ($event->team_id == $match->away_team_id && $match->away_fouls > 0) {
+                $match->decrement('away_fouls');
+            }
+        }
+
+        $event->delete();
+
+        return response()->json([
+            'message' => 'Event pertandingan berhasil dihapus',
+            'match' => $match->fresh(['category', 'homeTeam', 'awayTeam', 'events.team']),
+        ]);
+    }
 }

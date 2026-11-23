@@ -46,7 +46,7 @@ class MatchController extends Controller
 
         $matches = $query->orderBy('match_time', 'asc')->get();
         $categories = TournamentCategory::all();
-        $teams = Team::orderBy('name', 'asc')->get();
+        $teams = Team::with('category')->orderBy('name', 'asc')->get();
 
         return response()->json([
             'status'     => 'success',
@@ -111,7 +111,7 @@ class MatchController extends Controller
         if ($request->filled('group')) {
             $query->where('group', strtoupper($request->group));
         }
-        $teams = $query->orderBy('group', 'asc')->orderBy('name', 'asc')->get();
+        $teams = $query->with('category')->orderBy('group', 'asc')->orderBy('name', 'asc')->get();
 
         return response()->json([
             'status' => 'success',

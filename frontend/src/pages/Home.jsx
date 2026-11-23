@@ -40,10 +40,14 @@ function normalizeMatchFromApi(m) {
     FINAL: 'Grand Final',
   }
 
+  const rawStage = (m.stage || '').toUpperCase()
+  const displayStage = stageLabelMap[rawStage] || stageLabelMap[m.stage] || m.stage || 'Liga Futsal Pelajar'
+
   return {
     ...m,
     category: 'LFP 2026',
-    stage: stageLabelMap[m.stage] || m.stage || 'Liga Futsal Pelajar',
+    stage: displayStage,
+    rawStage: rawStage,
     arena: m.venue || m.arena || 'Lapangan Utama GGM Cianjur (Court A Vinyl)',
     time: matchDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
     date: matchDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -133,7 +137,43 @@ export default function Home() {
       const isClosed = match.saleStatus === 'CLOSED' || match.status === 'FINISHED' || !hasQuota || (match.quotaAvailable ?? 0) <= 0
       if (isClosed) return false
 
-      const matchesStage = activeStage === 'ALL' || match.stage === activeStage || match.rawStage === activeStage || (match.stage && match.stage.includes(activeStage))
+      const matchesStage = (() => {
+        if (activeStage === 'ALL') return true
+        if (match.rawStage === activeStage) return true
+        if (match.stage === activeStage) return true
+        const stageUpper = (match.stage || '').toUpperCase()
+        const rawUpper = (match.rawStage || '').toUpperCase()
+
+        if (activeStage === 'QUARTER_FINAL') {
+          return (
+            rawUpper === 'QUARTER_FINAL' ||
+            stageUpper.includes('8 BESAR') ||
+            stageUpper.includes('PEREMPAT') ||
+            stageUpper.includes('QUARTER')
+          )
+        }
+        if (activeStage === 'GROUP') {
+          return (
+            rawUpper === 'GROUP' ||
+            stageUpper.includes('GRUP') ||
+            stageUpper.includes('PENYISIHAN')
+          )
+        }
+        if (activeStage === 'SEMI_FINAL') {
+          return rawUpper === 'SEMI_FINAL' || stageUpper.includes('SEMI')
+        }
+        if (activeStage === 'FINAL') {
+          return (
+            (rawUpper === 'FINAL' || stageUpper.includes('GRAND FINAL')) &&
+            !stageUpper.includes('PEREMPAT') &&
+            !stageUpper.includes('SEMI') &&
+            rawUpper !== 'QUARTER_FINAL' &&
+            rawUpper !== 'SEMI_FINAL'
+          )
+        }
+        return false
+      })()
+
       const searchLower = searchQuery.toLowerCase().trim()
       const matchesSearch =
         searchLower === '' ||
@@ -209,15 +249,7 @@ export default function Home() {
               Turnamen Resmi:
             </span>
             <span className="font-mono text-lg sm:text-xl md:text-2xl font-black uppercase text-ink">
-              Liga Futsal Pelajar (LFP) 2026 • 8 Sekolah
-            </span>
-          </div>
-          <div className="flex flex-wrap items-baseline gap-2 sm:border-l-2 sm:border-line sm:pl-6">
-            <span className="font-mono text-xs sm:text-sm uppercase tracking-wider text-ink/70 font-bold">
-              Sistem Validasi Tiket:
-            </span>
-            <span className="font-mono text-lg sm:text-xl md:text-2xl font-black uppercase text-brand">
-              Database MySQL + Turnstile Gate GGM
+              Liga Futsal Pelajar (LFP) 2026 • 20 Sekolah
             </span>
           </div>
         </div>
@@ -234,9 +266,6 @@ export default function Home() {
               Jadwal Pertandingan &amp; Tiket
             </h2>
           </div>
-          <p className="font-mono text-xs sm:text-sm text-ink/70 max-w-md font-medium">
-            Pembaruan kuota tiket langsung terintegrasi secara real-time dengan database MySQL &amp; gate controller GGM Cianjur.
-          </p>
         </div>
 
         {/* Search Bar & Filter Babak */}
@@ -291,9 +320,6 @@ export default function Home() {
         {isLoadingData ? (
           <div className="mt-6 sm:mt-8 border-[2.5px] border-ink bg-white p-8 sm:p-12 text-center shadow-brutal">
             <Loader2 size={32} className="mx-auto animate-spin text-brand mb-3" />
-            <p className="font-mono text-xs sm:text-sm font-bold uppercase text-ink">
-              Memuat jadwal pertandingan dari database MySQL...
-            </p>
           </div>
         ) : (
           <div className="mt-5 sm:mt-6 grid gap-4 sm:gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
@@ -319,9 +345,6 @@ export default function Home() {
       <section id="klasemen" className="mt-14 sm:mt-20 scroll-mt-24 border-t-2 border-ink pt-10">
         <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4 border-b-2 border-ink pb-4 mb-6">
           <div>
-            <span className="font-mono text-xs font-black uppercase text-brand tracking-widest bg-brand-light px-2.5 py-0.5 border border-brand inline-block mb-1">
-              DATA OTOMATIS MYSQL • EVALUASI DOSEN
-            </span>
             <h2 className="font-display text-2xl sm:text-4xl lg:text-5xl font-black uppercase text-ink">
               Klasemen &amp; Top Scorer LFP 2026
             </h2>
@@ -467,7 +490,6 @@ export default function Home() {
 
             <div className="p-3 bg-[#f8faf9] border-t-2 border-ink font-mono text-xs text-ink/70 flex items-center justify-between">
               <span>* Peringkat 1-2 lolos otomatis knockout, 3-4 kualifikasi playoff</span>
-              <span className="font-bold text-brand">Real-time MySQL Standings</span>
             </div>
           </div>
 
@@ -514,10 +536,6 @@ export default function Home() {
                   </div>
                 </div>
               ))}
-            </div>
-
-            <div className="p-3 bg-[#f8faf9] border-t-2 border-ink font-mono text-xs text-center text-ink/70">
-              Data agregat dari tabel <code className="font-bold text-ink">match_events</code> MySQL
             </div>
           </div>
         </div>

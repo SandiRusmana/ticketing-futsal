@@ -255,58 +255,179 @@ export default function OperatorDashboard() {
     }
   }
 
-  const handleScoreChange = async (team, delta) => {
+  // State Modal Input Gol (Top Scorer Real MySQL)
+  const [goalModal, setGoalModal] = useState({
+    isOpen: false,
+    team: 'A',
+    teamName: '',
+    teamId: null,
+    playerName: '',
+    minute: 1,
+    isSubmitting: false,
+  })
+
+  // State Modal Input Kartu Kuning / Merah
+  const [cardModal, setCardModal] = useState({
+    isOpen: false,
+    team: 'A',
+    teamName: '',
+    teamId: null,
+    cardType: 'YELLOW_CARD',
+    playerName: '',
+    minute: 1,
+    isSubmitting: false,
+  })
+
+  const openGoalModal = (teamKey) => {
     if (!activeMatch) return
+    const isTeamA = teamKey === 'A'
+    const teamObj = isTeamA ? activeMatch.home_team : activeMatch.away_team
+    const teamName = isTeamA ? activeHomeName : activeAwayName
     const currentMin = Math.max(1, Math.floor(timerSeconds / 60))
+
+    setGoalModal({
+      isOpen: true,
+      team: teamKey,
+      teamName,
+      teamId: teamObj?.id || (isTeamA ? activeMatch.home_team_id : activeMatch.away_team_id),
+      playerName: '',
+      minute: currentMin,
+      isSubmitting: false,
+    })
+  }
+
+  const handleSaveGoal = async (e) => {
+    e.preventDefault()
+    if (!activeMatch) return
+    const pName = goalModal.playerName.trim()
+    if (!pName) {
+      alert('Nama pemain pencetak gol wajib diisi!')
+      return
+    }
+
+    setGoalModal((prev) => ({ ...prev, isSubmitting: true }))
+    try {
+      const payload = {
+        team_id: goalModal.teamId,
+        player_name: pName,
+        event_type: 'GOAL',
+        minute: Number(goalModal.minute) || 1,
+      }
+
+      await futsaltixApi.addMatchEvent(activeMatch.id, payload)
+      await refreshMatches()
+
+      if (goalModal.team === 'A') {
+        setScoreA((prev) => prev + 1)
+      } else {
+        setScoreB((prev) => prev + 1)
+      }
+
+      addAuditLog(`⚽ GOL! ${pName} (${goalModal.teamName}) menit ke-${goalModal.minute}' dicatat ke database & Top Scorer!`, 'goal')
+
+      setGoalModal({
+        isOpen: false,
+        team: 'A',
+        teamName: '',
+        teamId: null,
+        playerName: '',
+        minute: 1,
+        isSubmitting: false,
+      })
+    } catch (error) {
+      alert('Gagal mencatat gol: ' + (error.response?.data?.message || error.message))
+      setGoalModal((prev) => ({ ...prev, isSubmitting: false }))
+    }
+  }
+
+  const openCardModal = (cardType, teamKey = 'A') => {
+    if (!activeMatch) return
+    const isTeamA = teamKey === 'A'
+    const teamObj = isTeamA ? activeMatch.home_team : activeMatch.away_team
+    const teamName = isTeamA ? activeHomeName : activeAwayName
+    const currentMin = Math.max(1, Math.floor(timerSeconds / 60))
+
+    setCardModal({
+      isOpen: true,
+      team: teamKey,
+      teamName,
+      teamId: teamObj?.id || (isTeamA ? activeMatch.home_team_id : activeMatch.away_team_id),
+      cardType,
+      playerName: '',
+      minute: currentMin,
+      isSubmitting: false,
+    })
+  }
+
+  const handleSaveCard = async (e) => {
+    e.preventDefault()
+    if (!activeMatch) return
+    const pName = cardModal.playerName.trim() || `Pemain ${cardModal.teamName}`
+
+    setCardModal((prev) => ({ ...prev, isSubmitting: true }))
+    try {
+      const payload = {
+        team_id: cardModal.teamId,
+        player_name: pName,
+        event_type: cardModal.cardType,
+        minute: Number(cardModal.minute) || 1,
+      }
+
+      await futsaltixApi.addMatchEvent(activeMatch.id, payload)
+      await refreshMatches()
+
+      const cardLabel = cardModal.cardType === 'YELLOW_CARD' ? 'Kartu Kuning' : 'Kartu Merah'
+      addAuditLog(`${cardLabel} dicatat untuk ${pName} (${cardModal.teamName})`, 'scan')
+
+      setCardModal({
+        isOpen: false,
+        team: 'A',
+        teamName: '',
+        teamId: null,
+        cardType: 'YELLOW_CARD',
+        playerName: '',
+        minute: 1,
+        isSubmitting: false,
+      })
+    } catch (error) {
+      alert('Gagal mencatat kartu: ' + (error.response?.data?.message || error.message))
+      setCardModal((prev) => ({ ...prev, isSubmitting: false }))
+    }
+  }
+
+  const handleScoreCorrection = async (team) => {
+    if (!activeMatch) return
     const homeName = activeMatch.home_team?.name || activeMatch.home_placeholder || 'Tim Home'
     const awayName = activeMatch.away_team?.name || activeMatch.away_placeholder || 'Tim Away'
 
     if (team === 'A') {
-      const updated = Math.max(0, scoreA + delta)
+      const updated = Math.max(0, scoreA - 1)
       setScoreA(updated)
-      const payload = {
-        status: activeMatch.status === 'SCHEDULED' ? 'LIVE' : activeMatch.status,
-        home_score: updated,
-        away_score: scoreB,
-        home_fouls: foulsA,
-        away_fouls: foulsB,
-        current_minute: currentMin,
-      }
-      if (delta > 0 && activeMatch.home_team?.id) {
-        payload.event = {
-          team_id: activeMatch.home_team.id,
-          event_type: 'GOAL',
-          player_name: `Pemain ${homeName}`,
-          minute: currentMin,
-        }
-      }
-      await syncMatchToServer(
-        payload,
-        `${delta > 0 ? '+ Gol untuk' : 'Koreksi skor'} ${homeName} (Skor: ${updated} - ${scoreB})`
-      )
+      await syncMatchToServer({ home_score: updated }, `Koreksi skor ${homeName} menjadi ${updated}`)
     } else {
-      const updated = Math.max(0, scoreB + delta)
+      const updated = Math.max(0, scoreB - 1)
       setScoreB(updated)
-      const payload = {
-        status: activeMatch.status === 'SCHEDULED' ? 'LIVE' : activeMatch.status,
-        home_score: scoreA,
-        away_score: updated,
-        home_fouls: foulsA,
-        away_fouls: foulsB,
-        current_minute: currentMin,
-      }
-      if (delta > 0 && activeMatch.away_team?.id) {
-        payload.event = {
-          team_id: activeMatch.away_team.id,
-          event_type: 'GOAL',
-          player_name: `Pemain ${awayName}`,
-          minute: currentMin,
-        }
-      }
-      await syncMatchToServer(
-        payload,
-        `${delta > 0 ? '+ Gol untuk' : 'Koreksi skor'} ${awayName} (Skor: ${scoreA} - ${updated})`
-      )
+      await syncMatchToServer({ away_score: updated }, `Koreksi skor ${awayName} menjadi ${updated}`)
+    }
+  }
+
+  const handleDeleteEvent = async (eventId, eventType, playerName) => {
+    if (!activeMatch) return
+    if (!window.confirm(`Hapus catatan event ${eventType} untuk ${playerName}? Skor pertandingan akan disesuaikan otomatis.`)) return
+    try {
+      await futsaltixApi.deleteMatchEvent(activeMatch.id, eventId)
+      await refreshMatches()
+      addAuditLog(`Event ${eventType} (${playerName}) berhasil dihapus dari database.`, 'info')
+    } catch (err) {
+      alert('Gagal menghapus event: ' + (err.response?.data?.message || err.message))
+    }
+  }
+
+  const handleScoreChange = async (team, delta) => {
+    if (delta > 0) {
+      openGoalModal(team)
+    } else {
+      handleScoreCorrection(team)
     }
   }
 
@@ -1039,39 +1160,15 @@ export default function OperatorDashboard() {
                     <span className="font-black uppercase text-ink mr-1">LOG EVENT:</span>
                     <button
                       type="button"
-                      onClick={() =>
-                        syncMatchToServer(
-                          {
-                            event: {
-                              team_id: activeMatch?.home_team?.id,
-                              event_type: 'YELLOW_CARD',
-                              player_name: `Pemain ${activeHomeName}`,
-                              minute: Math.max(1, Math.floor(timerSeconds / 60)),
-                            },
-                          },
-                          `Kartu Kuning dicatat untuk ${activeHomeName}`
-                        )
-                      }
-                      className="px-4 py-2 bg-yellow-300 text-black border-2 border-ink font-bold shadow-brutal-sm cursor-pointer"
+                      onClick={() => openCardModal('YELLOW_CARD', 'A')}
+                      className="px-4 py-2 bg-yellow-300 text-black border-2 border-ink font-bold shadow-brutal-sm cursor-pointer hover:bg-yellow-400"
                     >
                       + KARTU KUNING
                     </button>
                     <button
                       type="button"
-                      onClick={() =>
-                        syncMatchToServer(
-                          {
-                            event: {
-                              team_id: activeMatch?.away_team?.id,
-                              event_type: 'RED_CARD',
-                              player_name: `Pemain ${activeAwayName}`,
-                              minute: Math.max(1, Math.floor(timerSeconds / 60)),
-                            },
-                          },
-                          `Kartu Merah dicatat untuk ${activeAwayName}`
-                        )
-                      }
-                      className="px-4 py-2 bg-danger text-white border-2 border-ink font-bold shadow-brutal-sm cursor-pointer"
+                      onClick={() => openCardModal('RED_CARD', 'A')}
+                      className="px-4 py-2 bg-danger text-white border-2 border-ink font-bold shadow-brutal-sm cursor-pointer hover:bg-red-700"
                     >
                       + KARTU MERAH
                     </button>
@@ -1086,6 +1183,82 @@ export default function OperatorDashboard() {
                     SELESAIKAN PERTANDINGAN (FT)
                   </button>
                 </div>
+              </div>
+
+              {/* DAFTAR CATATAN GOL & TOP SCORER LAGA INI (MYSQL LIVE) */}
+              <div className="border-2 border-ink bg-white p-5 sm:p-6 shadow-brutal-sm space-y-3">
+                <div className="flex items-center justify-between pb-3 border-b-2 border-ink">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">⚽</span>
+                    <h4 className="font-display text-base sm:text-lg font-black uppercase text-ink">
+                      Pencetak Gol &amp; Event Pertandingan Ini (Database MySQL Live)
+                    </h4>
+                  </div>
+                  <span className="font-mono text-xs font-bold text-ink/70">
+                    Total: {(activeMatch?.events || []).length} Aksi
+                  </span>
+                </div>
+
+                {(activeMatch?.events || []).length === 0 ? (
+                  <div className="p-4 bg-surface border-2 border-dashed border-ink/40 text-center font-mono text-xs sm:text-sm text-ink/65">
+                    Belum ada gol yang dicatat pada laga ini. Klik tombol <strong>+ GOL</strong> di atas untuk memasukkan nama pemain pencetak gol ke daftar Top Scorer!
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {(activeMatch?.events || []).map((ev) => {
+                      const isGoal = ev.event_type === 'GOAL'
+                      const isYellow = ev.event_type === 'YELLOW_CARD'
+                      const isRed = ev.event_type === 'RED_CARD'
+                      const teamName =
+                        ev.team?.name ||
+                        (Number(ev.team_id) === Number(activeMatch.home_team_id)
+                          ? activeHomeName
+                          : activeAwayName)
+
+                      return (
+                        <div
+                          key={ev.id}
+                          className="flex items-center justify-between p-3 border-2 border-ink bg-surface hover:bg-white transition-all font-mono text-xs sm:text-sm"
+                        >
+                          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                            <span
+                              className={`px-2 py-0.5 border border-ink font-black text-xs shrink-0 ${
+                                isGoal
+                                  ? 'bg-[#dcfce7] text-[#15803d]'
+                                  : isYellow
+                                  ? 'bg-yellow-300 text-black'
+                                  : 'bg-danger text-white'
+                              }`}
+                            >
+                              {isGoal
+                                ? `⚽ GOL (${ev.minute}')`
+                                : isYellow
+                                ? `🟨 KUNING (${ev.minute}')`
+                                : `🟥 MERAH (${ev.minute}')`}
+                            </span>
+                            <div className="truncate">
+                              <strong className="text-ink font-black text-sm">
+                                {ev.player_name}
+                              </strong>
+                              <span className="text-ink/70 text-xs ml-2 font-bold truncate">
+                                ({teamName})
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEvent(ev.id, ev.event_type, ev.player_name)}
+                            className="text-danger hover:bg-red-50 border border-ink/40 px-2.5 py-1 text-xs font-black uppercase cursor-pointer shrink-0 ml-2 shadow-xs"
+                            title="Koreksi / Hapus Catatan Ini"
+                          >
+                            ✕ Hapus
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* AUDIT LOG TELEMETRI */}
@@ -1577,7 +1750,7 @@ export default function OperatorDashboard() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b-2 border-ink mb-5 gap-3">
                   <div>
                     <span className="bg-brand text-white px-3 py-1 font-mono text-xs sm:text-sm font-black uppercase border border-ink">
-                      PIALA BUPATI CIANJUR 2026
+                      LIGA FUTSAL PELAJAR (LFP) CIANJUR 2026
                     </span>
                     <h3 className="font-display text-2xl sm:text-3xl font-black uppercase text-ink mt-2">
                       SINKRONISASI BAGAN BABAK GUGUR
@@ -1826,6 +1999,203 @@ export default function OperatorDashboard() {
           OPERASIONAL MEJA PERTANDINGAN // GELANGGANG GENERASI MUDA (GGM) CIANJUR
         </footer>
       </main>
+
+      {/* =========================================================================
+          MODAL INPUT PENCETAK GOL (TOP SCORER REAL MYSQL)
+          ========================================================================= */}
+      {goalModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-lg border-[3px] border-ink bg-white p-5 sm:p-7 shadow-brutal-lg">
+            <div className="flex items-center justify-between border-b-2 border-ink pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">⚽</span>
+                <div>
+                  <span className="bg-brand text-white font-mono text-[10px] font-black uppercase px-2 py-0.5 border border-ink">
+                    INPUT PENCETAK GOL // TOP SCORER
+                  </span>
+                  <h3 className="font-display text-xl sm:text-2xl font-black uppercase text-ink mt-1">
+                    GOL UNTUK {goalModal.teamName}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGoalModal({ ...goalModal, isOpen: false })}
+                className="font-mono text-base font-black p-1 hover:bg-surface border-2 border-ink cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveGoal} className="space-y-4 font-mono text-sm">
+              <div>
+                <label className="block font-black uppercase mb-1 text-xs">
+                  TIM PENCETAK GOL
+                </label>
+                <input
+                  type="text"
+                  disabled
+                  value={goalModal.teamName}
+                  className="w-full p-2.5 border-2 border-ink bg-surface text-ink font-bold opacity-80"
+                />
+              </div>
+
+              <div>
+                <label className="block font-black uppercase mb-1 text-xs">
+                  NAMA PEMAIN PENCETAK GOL <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Contoh: Rizky Pratama / Aldi Kurnia"
+                  value={goalModal.playerName}
+                  onChange={(e) => setGoalModal({ ...goalModal, playerName: e.target.value })}
+                  className="w-full p-3 border-2 border-ink bg-surface font-black text-sm sm:text-base focus:bg-white focus:outline-none"
+                />
+                <p className="text-[11px] text-ink/70 mt-1 font-sans">
+                  💡 Nama pemain ini otomatis masuk ke peringkat <strong>Top Scorer</strong> turnamen di database MySQL.
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-black uppercase mb-1 text-xs">
+                  MENIT TERJADINYA GOL
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    required
+                    value={goalModal.minute}
+                    onChange={(e) => setGoalModal({ ...goalModal, minute: e.target.value })}
+                    className="w-24 p-2.5 border-2 border-ink bg-surface font-black text-center focus:bg-white focus:outline-none"
+                  />
+                  <span className="font-bold text-ink">Menit Pertandingan</span>
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-3 border-t-2 border-ink">
+                <button
+                  type="button"
+                  onClick={() => setGoalModal({ ...goalModal, isOpen: false })}
+                  className="px-4 py-2 border-2 border-ink bg-surface font-black text-xs uppercase cursor-pointer"
+                >
+                  BATAL
+                </button>
+                <button
+                  type="submit"
+                  disabled={goalModal.isSubmitting}
+                  className="px-6 py-2.5 bg-brand text-white border-2 border-ink font-black text-xs sm:text-sm uppercase shadow-brutal-sm hover:bg-brand-dark cursor-pointer disabled:opacity-50"
+                >
+                  {goalModal.isSubmitting ? 'MENYIMPAN...' : '⚽ SIMPAN GOL KE DATABASE'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL INPUT KARTU DISIPLIN (KUNING / MERAH)
+          ========================================================================= */}
+      {cardModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-lg border-[3px] border-ink bg-white p-5 sm:p-7 shadow-brutal-lg">
+            <div className="flex items-center justify-between border-b-2 border-ink pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{cardModal.cardType === 'YELLOW_CARD' ? '🟨' : '🟥'}</span>
+                <div>
+                  <span className={`font-mono text-[10px] font-black uppercase px-2 py-0.5 border border-ink ${
+                    cardModal.cardType === 'YELLOW_CARD' ? 'bg-yellow-300 text-black' : 'bg-danger text-white'
+                  }`}>
+                    CATAT SANKSI WASIT
+                  </span>
+                  <h3 className="font-display text-xl sm:text-2xl font-black uppercase text-ink mt-1">
+                    {cardModal.cardType === 'YELLOW_CARD' ? 'KARTU KUNING' : 'KARTU MERAH'}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCardModal({ ...cardModal, isOpen: false })}
+                className="font-mono text-base font-black p-1 hover:bg-surface border-2 border-ink cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCard} className="space-y-4 font-mono text-sm">
+              <div>
+                <label className="block font-black uppercase mb-1 text-xs">PILIH TIM</label>
+                <select
+                  value={cardModal.team}
+                  onChange={(e) => {
+                    const t = e.target.value
+                    const isTeamA = t === 'A'
+                    const teamObj = isTeamA ? activeMatch.home_team : activeMatch.away_team
+                    const teamName = isTeamA ? activeHomeName : activeAwayName
+                    setCardModal({
+                      ...cardModal,
+                      team: t,
+                      teamName,
+                      teamId: teamObj?.id || (isTeamA ? activeMatch.home_team_id : activeMatch.away_team_id),
+                    })
+                  }}
+                  className="w-full p-2.5 border-2 border-ink bg-surface font-bold text-sm"
+                >
+                  <option value="A">{activeHomeName} (Home)</option>
+                  <option value="B">{activeAwayName} (Away)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-black uppercase mb-1 text-xs">NAMA PEMAIN / NO. PUNGGUNG</label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Contoh: No. 7 Budi"
+                  value={cardModal.playerName}
+                  onChange={(e) => setCardModal({ ...cardModal, playerName: e.target.value })}
+                  className="w-full p-3 border-2 border-ink bg-surface font-black text-sm sm:text-base focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-black uppercase mb-1 text-xs">MENIT SANKSI</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  required
+                  value={cardModal.minute}
+                  onChange={(e) => setCardModal({ ...cardModal, minute: e.target.value })}
+                  className="w-24 p-2.5 border-2 border-ink bg-surface font-black text-center"
+                />
+              </div>
+
+              <div className="pt-3 flex justify-end gap-3 border-t-2 border-ink">
+                <button
+                  type="button"
+                  onClick={() => setCardModal({ ...cardModal, isOpen: false })}
+                  className="px-4 py-2 border-2 border-ink bg-surface font-black text-xs uppercase cursor-pointer"
+                >
+                  BATAL
+                </button>
+                <button
+                  type="submit"
+                  disabled={cardModal.isSubmitting}
+                  className="px-6 py-2.5 bg-ink text-white border-2 border-ink font-black text-xs sm:text-sm uppercase shadow-brutal-sm cursor-pointer disabled:opacity-50"
+                >
+                  {cardModal.isSubmitting ? 'MENYIMPAN...' : 'SIMPAN SANKSI KE MYSQL'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

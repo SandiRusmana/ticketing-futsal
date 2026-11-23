@@ -409,7 +409,15 @@ class DatabaseSeeder extends Seeder
                 'stage' => 'SEMI_FINAL', 'slot' => 'SF-1', 'status' => 'UPCOMING',
                 'quota' => 600, 'available' => 520, 'price' => 25000,
             ],
-            // Match 6: GRAND FINAL
+            // Match 6: SEMIFINAL 2
+            [
+                'home' => null, 'away' => null,
+                'home_p' => 'Pemenang QF 3', 'away_p' => 'Pemenang QF 4',
+                'time' => Carbon::now()->addDays(3)->setTime(19, 30),
+                'stage' => 'SEMI_FINAL', 'slot' => 'SF-2', 'status' => 'UPCOMING',
+                'quota' => 600, 'available' => 500, 'price' => 25000,
+            ],
+            // Match 7: GRAND FINAL
             [
                 'home' => null, 'away' => null,
                 'home_p' => 'Pemenang SF 1', 'away_p' => 'Pemenang SF 2',
@@ -456,6 +464,9 @@ class DatabaseSeeder extends Seeder
         // 6. SEED TIKET ASLI (ORDER SUDAH DIBAYAR UNTUK TESTING SUPORTER)
         // ======================================================================
         $testMatch1 = $createdUpcoming[0]; // Pacet vs MAN 1
+        $testMatch2 = $createdUpcoming[1]; // SMAN 1 Cianjur vs SMKN 2 Cilaku
+        $testMatch3 = $createdUpcoming[2]; // SMAN 1 Cilaku vs SMAN 1 Cibeber
+
         $orderCode1 = 'LFP-FTX-' . strtoupper(Str::random(8));
         $qrToken1 = 'TIX-LFP2026-' . strtoupper(Str::random(6)) . '-' . strtoupper(substr(md5($orderCode1), 0, 8));
 
@@ -473,6 +484,52 @@ class DatabaseSeeder extends Seeder
             'expires_at'      => Carbon::now()->addDays(1),
             'paid_at'         => Carbon::now()->subHours(1),
             'qr_payload'      => $qrToken1,
+            'is_checked_in'   => false,
+            'checked_in_at'   => null,
+            'checked_in_by'   => null,
+            'checked_in_gate' => null,
+        ]);
+
+        $orderCode2 = 'LFP-FTX-' . strtoupper(Str::random(8));
+        $qrToken2 = 'TIX-LFP2026-' . strtoupper(Str::random(6)) . '-' . strtoupper(substr(md5($orderCode2), 0, 8));
+
+        Order::create([
+            'order_code'      => $orderCode2,
+            'user_id'         => $suporter->id,
+            'match_id'        => $testMatch2->id,
+            'quantity'        => 1,
+            'unit_price'      => 20000,
+            'admin_fee'       => 2500,
+            'total_amount'    => 22500,
+            'status'          => 'PAID',
+            'payment_method'  => 'Midtrans Snap (BCA VA)',
+            'snap_token'      => 'sample-snap-' . Str::uuid(),
+            'expires_at'      => Carbon::now()->addDays(1),
+            'paid_at'         => Carbon::now()->subMinutes(30),
+            'qr_payload'      => $qrToken2,
+            'is_checked_in'   => false,
+            'checked_in_at'   => null,
+            'checked_in_by'   => null,
+            'checked_in_gate' => null,
+        ]);
+
+        $orderCode3 = 'LFP-FTX-' . strtoupper(Str::random(8));
+        $qrToken3 = 'TIX-LFP2026-' . strtoupper(Str::random(6)) . '-' . strtoupper(substr(md5($orderCode3), 0, 8));
+
+        Order::create([
+            'order_code'      => $orderCode3,
+            'user_id'         => $suporter->id,
+            'match_id'        => $testMatch3->id,
+            'quantity'        => 3,
+            'unit_price'      => 20000,
+            'admin_fee'       => 2500,
+            'total_amount'    => 62500,
+            'status'          => 'PAID',
+            'payment_method'  => 'Midtrans Snap (GoPay)',
+            'snap_token'      => 'sample-snap-' . Str::uuid(),
+            'expires_at'      => Carbon::now()->addDays(1),
+            'paid_at'         => Carbon::now()->subMinutes(15),
+            'qr_payload'      => $qrToken3,
             'is_checked_in'   => false,
             'checked_in_at'   => null,
             'checked_in_by'   => null,

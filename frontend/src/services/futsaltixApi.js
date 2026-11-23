@@ -34,6 +34,7 @@ export const futsaltixApi = {
   updateLiveScore: (matchId, payload) => axiosClient.patch(`/matches/${matchId}/score`, payload),
   operatorUpdateScore: (matchId, payload) => axiosClient.patch(`/matches/${matchId}/score`, payload),
   addMatchEvent: (matchId, payload) => axiosClient.post(`/matches/${matchId}/events`, payload),
+  deleteMatchEvent: (matchId, eventId) => axiosClient.delete(`/matches/${matchId}/events/${eventId}`),
   toggleTicketSale: (matchId) => axiosClient.patch(`/matches/${matchId}/toggle-sale`),
   toggleMatchSales: (matchId) => axiosClient.patch(`/matches/${matchId}/toggle-sale`),
 

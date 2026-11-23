@@ -57,7 +57,7 @@ function Team({ team, align = 'left' }) {
       ) : (
         <div
           className="w-8 h-8 sm:w-11 sm:h-11 border-2 border-ink shrink-0 shadow-brutal-xs flex items-center justify-center font-mono font-black text-xs uppercase text-white"
-          style={{ backgroundColor: team?.color || '#10B981' }}
+          style={{ backgroundColor: team?.color || '#2ea247ff' }}
         >
           <span className="truncate px-0.5">{team?.short?.slice(0, 4) || 'TIM'}</span>
         </div>

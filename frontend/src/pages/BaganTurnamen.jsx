@@ -312,29 +312,49 @@ export default function BaganTurnamen() {
     const sfRaw = catMatches.filter((m) => m.stage === 'SEMI_FINAL')
     const finalRaw = catMatches.filter((m) => m.stage === 'FINAL')
 
-    // 1. Putaran 1: 4 Laga Penyisihan / Babak Grup
+    // 1. Putaran 1: 4 Laga Babak Penyisihan Grup (Real dari MySQL)
     const round16 = [
-      round16Raw[0] ? normalizeMatchNode(round16Raw[0], 1) : { id: 'r16-1', matchCode: 'GR-01', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMAN 1 Cianjur', teamB: 'SMAN 2 Cianjur', scoreA: 4, scoreB: 2, winner: 'SMAN 1 Cianjur' },
-      round16Raw[1] ? normalizeMatchNode(round16Raw[1], 2) : { id: 'r16-2', matchCode: 'GR-02', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMKN 1 Cianjur', teamB: 'MAN 1 Cianjur', scoreA: 3, scoreB: 1, winner: 'SMKN 1 Cianjur' },
-      round16Raw[2] ? normalizeMatchNode(round16Raw[2], 3) : { id: 'r16-3', matchCode: 'GR-03', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMKN 2 Cianjur', teamB: 'SMAN 1 Cilaku', scoreA: 2, scoreB: 2, winner: null },
-      round16Raw[3] ? normalizeMatchNode(round16Raw[3], 4) : { id: 'r16-4', matchCode: 'GR-04', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMAN 1 Sukaresmi', teamB: 'SMA Mardi Waluyo', scoreA: 3, scoreB: 0, winner: 'SMAN 1 Sukaresmi' },
+      round16Raw[0]
+        ? normalizeMatchNode(round16Raw[0], 1)
+        : { id: 'gr-1', matchCode: 'GR-01', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMAN 1 Pacet', teamB: 'SMA Al Kamil IBS', scoreA: 3, scoreB: 0, winner: 'SMAN 1 Pacet' },
+      round16Raw[1]
+        ? normalizeMatchNode(round16Raw[1], 2)
+        : { id: 'gr-2', matchCode: 'GR-02', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMAN 1 Cianjur', teamB: 'SMAN 1 Sukanagara', scoreA: 5, scoreB: 2, winner: 'SMAN 1 Cianjur' },
+      round16Raw[2]
+        ? normalizeMatchNode(round16Raw[2], 3)
+        : { id: 'gr-3', matchCode: 'GR-03', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMKN 2 Cilaku', teamB: 'SMAN 1 Ciranjang', scoreA: 4, scoreB: 2, winner: 'SMKN 2 Cilaku' },
+      round16Raw[3]
+        ? normalizeMatchNode(round16Raw[3], 4)
+        : { id: 'gr-4', matchCode: 'GR-04', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMKN 1 Sukaluyu', teamB: 'SMK Al-Ibrohimiyah', scoreA: 4, scoreB: 0, winner: 'SMKN 1 Sukaluyu' },
     ]
 
-    // 2. Putaran 2: 4 Laga Perempat Final (8 Besar)
+    // 2. Putaran 2: 4 Laga Perempat Final (8 Besar) Real MySQL
     const quarterFinals = [
-      qfRaw[0] ? normalizeMatchNode(qfRaw[0], 1) : { id: 'qf-1', matchCode: 'QF-01', court: 'GGM Court A (Vinyl)', status: 'LIVE', teamA: 'SMAN 1 Cianjur', teamB: 'SMKN 1 Cianjur', scoreA: 3, scoreB: 2, winner: null },
-      qfRaw[1] ? normalizeMatchNode(qfRaw[1], 2) : { id: 'qf-2', matchCode: 'QF-02', court: 'GGM Court A (Vinyl)', status: 'UPCOMING', teamA: 'MAN 1 Cianjur', teamB: 'SMAN 2 Cianjur', scoreA: '-', scoreB: '-', winner: null },
-      qfRaw[2] ? normalizeMatchNode(qfRaw[2], 3) : { id: 'qf-3', matchCode: 'QF-03', court: 'GGM Court A (Vinyl)', status: 'UPCOMING', teamA: 'SMKN 2 Cianjur', teamB: 'SMAN 1 Sukaresmi', scoreA: '-', scoreB: '-', winner: null },
-      qfRaw[3] ? normalizeMatchNode(qfRaw[3], 4) : { id: 'qf-4', matchCode: 'QF-04', court: 'GGM Court A (Vinyl)', status: 'UPCOMING', teamA: 'SMAN 1 Cilaku', teamB: 'SMA Mardi Waluyo', scoreA: '-', scoreB: '-', winner: null },
+      qfRaw[0]
+        ? normalizeMatchNode(qfRaw[0], 1)
+        : { id: 'qf-1', matchCode: 'QF-01', court: 'GGM Court A (Vinyl)', status: 'UPCOMING', teamA: 'SMAN 1 Pacet', teamB: 'MAN 1 Cianjur', scoreA: '-', scoreB: '-', winner: null },
+      qfRaw[1]
+        ? normalizeMatchNode(qfRaw[1], 2)
+        : { id: 'qf-2', matchCode: 'QF-02', court: 'GGM Court A (Vinyl)', status: 'UPCOMING', teamA: 'SMAN 1 Cianjur', teamB: 'SMKN 2 Cilaku', scoreA: '-', scoreB: '-', winner: null },
+      qfRaw[2]
+        ? normalizeMatchNode(qfRaw[2], 3)
+        : { id: 'qf-3', matchCode: 'QF-03', court: 'GGM Court A (Vinyl)', status: 'UPCOMING', teamA: 'SMAN 1 Cilaku', teamB: 'SMAN 1 Cibeber', scoreA: '-', scoreB: '-', winner: null },
+      qfRaw[3]
+        ? normalizeMatchNode(qfRaw[3], 4)
+        : { id: 'qf-4', matchCode: 'QF-04', court: 'GGM Court A (Vinyl)', status: 'UPCOMING', teamA: 'SMKN 1 Sukaluyu', teamB: 'SMA Al Ittihad Cianjur', scoreA: '-', scoreB: '-', winner: null },
     ]
 
-    // 3. Putaran 3: 2 Laga Semifinal
+    // 3. Putaran 3: 2 Laga Semifinal Real MySQL
     const semiFinals = [
-      sfRaw[0] ? normalizeMatchNode(sfRaw[0], 1) : { id: 'sf-1', matchCode: 'SF-01', court: 'GGM Court A', status: 'UPCOMING', time: '15:30 WIB', teamA: 'Pemenang QF-01', teamB: 'Pemenang QF-02', scoreA: '-', scoreB: '-', winner: null },
-      sfRaw[1] ? normalizeMatchNode(sfRaw[1], 2) : { id: 'sf-2', matchCode: 'SF-02', court: 'GGM Court A', status: 'UPCOMING', time: '19:30 WIB', teamA: 'Pemenang QF-03', teamB: 'Pemenang QF-04', scoreA: '-', scoreB: '-', winner: null },
+      sfRaw[0]
+        ? normalizeMatchNode(sfRaw[0], 1)
+        : { id: 'sf-1', matchCode: 'SF-01', court: 'GGM Court A', status: 'UPCOMING', time: '15:30 WIB', teamA: 'Pemenang QF-01', teamB: 'Pemenang QF-02', scoreA: '-', scoreB: '-', winner: null },
+      sfRaw[1]
+        ? normalizeMatchNode(sfRaw[1], 2)
+        : { id: 'sf-2', matchCode: 'SF-02', court: 'GGM Court A', status: 'UPCOMING', time: '19:30 WIB', teamA: 'Pemenang QF-03', teamB: 'Pemenang QF-04', scoreA: '-', scoreB: '-', winner: null },
     ]
 
-    // 4. Putaran 4: Grand Final
+    // 4. Putaran 4: Grand Final Real MySQL
     const grandFinal =
       finalRaw.length > 0
         ? normalizeMatchNode(finalRaw[0], 1)
@@ -343,7 +363,7 @@ export default function BaganTurnamen() {
             matchCode: 'FINAL',
             court: 'GGM Court A Vinyl',
             status: 'UPCOMING',
-            dateStr: 'Minggu, 22 Nov 2026',
+            dateStr: 'Final LFP 2026',
             time: '19:30 WIB',
             teamA: 'Pemenang SF-01',
             teamB: 'Pemenang SF-02',
@@ -380,7 +400,7 @@ export default function BaganTurnamen() {
         <div className="flex items-center gap-2 font-mono text-[10px] sm:text-xs font-bold uppercase tracking-wider text-ink flex-wrap">
           <span className="h-2 sm:h-2.5 w-2 sm:w-2.5 bg-danger inline-block animate-ping shrink-0" />
           <span className="bg-ink text-[#fef08a] px-1.5 py-0.5">RESMI AFKAB</span>
-          <span>SISTEM BAGAN RESMI PIALA BUPATI CIANJUR 2026 // GELANGGANG GENERASI MUDA (GGM)</span>
+          <span>SISTEM BAGAN RESMI LIGA FUTSAL PELAJAR (LFP) 2026 // GELANGGANG GENERASI MUDA (GGM)</span>
         </div>
         <div className="hidden md:flex items-center gap-4 text-xs font-mono text-ink font-semibold">
           <span className="flex items-center gap-1">
@@ -657,7 +677,7 @@ export default function BaganTurnamen() {
             <div className="flex flex-col w-[270px] sm:w-[300px] shrink-0">
               <div className="bg-white border-2 border-ink p-2.5 sm:p-3 mb-5 shadow-brutal-sm text-center">
                 <span className="font-mono text-[10px] sm:text-[11px] bg-ink text-[#fef08a] px-2 py-0.5 inline-block mb-1 font-black">
-                  PUNCAK PIALA BUPATI
+                  PUNCAK FINAL LFP 2026
                 </span>
                 <h3 className="font-display text-sm sm:text-base font-bold uppercase text-ink">
                   PARTAI FINAL LFP 2026
@@ -670,7 +690,7 @@ export default function BaganTurnamen() {
                 {/* Kartu Utama Grand Final (Tepat di sumbu simetri SF-01 & SF-02) */}
                 <div className="border-3 border-ink bg-[#fef08a] p-4 sm:p-5 shadow-brutal text-center relative mt-8">
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-ink text-white px-3.5 py-1 font-mono text-[10px] sm:text-xs font-black uppercase border border-ink shadow-brutal-sm whitespace-nowrap">
-                    PUNCAK PIALA BUPATI 2026
+                    PUNCAK FINAL LFP 2026
                   </div>
 
                   <div className="flex justify-center my-2 sm:my-3">
