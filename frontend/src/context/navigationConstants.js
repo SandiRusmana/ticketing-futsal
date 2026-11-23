@@ -8,9 +8,11 @@ export const PAGE_NAMES = {
   LIVESCORE: 'livescore',       // Hasil Laga & Live Score Pertandingan
   TICKETS: 'tickets',           // Modal Tiket Saya & Riwayat E-Ticket
   OPERATOR: 'operator',         // Panel Operator Turnamen Meja Wasit GGM
+  OPERATOR_DASHBOARD: 'operator', // Alias Panel Operator
   OPERATOR_SCANNER: 'scanner',  // Pemindai Gate Lapangan Visual
   SCANNER: 'scanner',           // Alias Scanner Gate
   ADMIN: 'admin',               // Panel Super Admin Supervisi Penjualan & Gate
+  ADMIN_DASHBOARD: 'admin',     // Alias Super Admin Panel
   REGISTER: 'register',         // Halaman Registrasi Pengguna
   LOGIN: 'login',               // Halaman Masuk
 }

@@ -1,4 +1,5 @@
 import { Ticket, MapPin, Calendar, Clock } from 'lucide-react'
+import { getTeamLogoUrl } from '../utils/teamLogos.js'
 
 function formatRupiah(amount) {
   return new Intl.NumberFormat('id-ID', {
@@ -41,13 +42,33 @@ function RemainingBadge({ n, isClosed }) {
 }
 
 function Team({ team, align = 'left' }) {
+  const logoUrl = getTeamLogoUrl(team?.name)
   return (
-    <div className={`flex-1 min-w-0 ${align === 'right' ? 'text-right' : 'text-left'}`}>
-      <div className="font-display text-base sm:text-xl lg:text-2xl font-black uppercase tracking-tight text-ink leading-tight break-words">
-        {team?.name || 'Tim TBD'}
-      </div>
-      <div className="mt-0.5 sm:mt-1 font-mono text-[11px] sm:text-sm font-bold uppercase tracking-wider text-ink/75 break-words">
-        {team?.seed || team?.short || 'GGM CIANJUR'}
+    <div className={`flex-1 min-w-0 flex items-center gap-2 sm:gap-3 ${align === 'right' ? 'flex-row-reverse text-right' : 'text-left'}`}>
+      {logoUrl ? (
+        <img
+          src={logoUrl}
+          alt={team?.name}
+          className="w-8 h-8 sm:w-11 sm:h-11 object-contain border-2 border-ink p-1 bg-white shrink-0 shadow-brutal-xs"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none'
+          }}
+        />
+      ) : (
+        <div
+          className="w-8 h-8 sm:w-11 sm:h-11 border-2 border-ink shrink-0 shadow-brutal-xs flex items-center justify-center font-mono font-black text-xs uppercase text-white"
+          style={{ backgroundColor: team?.color || '#10B981' }}
+        >
+          <span className="truncate px-0.5">{team?.short?.slice(0, 4) || 'TIM'}</span>
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="font-display text-base sm:text-xl lg:text-2xl font-black uppercase tracking-tight text-ink leading-tight break-words">
+          {team?.name || 'Tim TBD'}
+        </div>
+        <div className="mt-0.5 sm:mt-1 font-mono text-[11px] sm:text-sm font-bold uppercase tracking-wider text-ink/75 break-words">
+          {team?.seed || team?.short || 'LFP CIANJUR'}
+        </div>
       </div>
     </div>
   )

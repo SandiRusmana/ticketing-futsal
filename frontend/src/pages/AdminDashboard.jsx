@@ -24,7 +24,7 @@ const formatRupiah = (amount) =>
   }).format(Number(amount) || 0)
 
 export default function AdminDashboard() {
-  const { navigateTo, openLoginModal } = useNavigation()
+  const { navigateTo, openLoginModal, logout } = useNavigation()
 
   // 'OVERVIEW' | 'OPERATOR_APPROVAL' | 'SCHEDULE' | 'BRACKET' | 'SCANNER' | 'REFEREE'
   const [activeTab, setActiveTab] = useState('OVERVIEW')
@@ -67,7 +67,7 @@ export default function AdminDashboard() {
     away_team_id: '',
     home_placeholder: '',
     away_placeholder: '',
-    category: 'SMA/SMK',
+    category: 'LFP (SMA/SMK)',
     stage: 'BABAK PENYISIHAN',
     arena: 'Court A (Vinyl), GGM Cianjur',
     gate: 'Gate A (Barat)',
@@ -285,14 +285,14 @@ export default function AdminDashboard() {
         away_team_id: '',
         home_placeholder: '',
         away_placeholder: '',
-        category: 'SMA/SMK',
+        category: 'LFP (SMA/SMK)',
         stage: 'BABAK PENYISIHAN',
         arena: 'Court A (Vinyl), GGM Cianjur',
         gate: 'Gate A (Barat)',
         match_date: '2026-11-15',
         kickoff_time: '15:30',
         total_quota: 500,
-        ticket_price: 15000,
+        ticket_price: 20000,
         sales_status: 'OPEN',
       })
       showNotice('Pertandingan baru berhasil dipublikasikan ke jadwal & ticketing!')
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         pendingOperatorCount={pendingCount}
-        onExit={() => navigateTo(PAGE_NAMES.LANDING)}
+        onExit={logout}
         onSwitchRole={openLoginModal}
         isMobileOpen={isMobileSidebarOpen}
         setIsMobileOpen={setIsMobileSidebarOpen}
@@ -1021,16 +1021,9 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                      <select
-                        value={matchCategoryFilter}
-                        onChange={(e) => setMatchCategoryFilter(e.target.value)}
-                        className="bg-surface border-2 border-ink px-4 py-3 font-mono text-sm sm:text-base font-bold text-ink cursor-pointer"
-                      >
-                        <option value="ALL">SEMUA KATEGORI</option>
-                        <option value="SD">KATEGORI SD</option>
-                        <option value="SMP">KATEGORI SMP</option>
-                        <option value="SMA/SMK">KATEGORI SMA/SMK</option>
-                      </select>
+                      <div className="bg-brand text-white border-2 border-ink px-4 py-2.5 font-mono text-xs sm:text-sm font-black uppercase shadow-brutal-sm flex items-center gap-2">
+                        <span>LFP 2026 (LIGA FUTSAL PELAJAR)</span>
+                      </div>
 
                       <button
                         type="button"
@@ -1183,7 +1176,7 @@ export default function AdminDashboard() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => navigateTo(PAGE_NAMES.OPERATOR_DASHBOARD)}
+                      onClick={() => navigateTo(PAGE_NAMES.OPERATOR)}
                       className="px-6 py-3 border-2 border-ink bg-brand text-white font-mono text-sm font-black uppercase cursor-pointer shadow-brutal-sm hover:bg-brand-dark"
                     >
                       Buka Console Meja Wasit ↗
@@ -1461,23 +1454,11 @@ export default function AdminDashboard() {
 
               <div>
                 <label className="block font-black uppercase mb-1.5 text-xs sm:text-sm">
-                  KATEGORI PERTANDINGAN
+                  TURNAMEN RESMI
                 </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {['SD', 'SMP', 'SMA/SMK'].map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setNewMatchForm({ ...newMatchForm, category: cat })}
-                      className={`p-3 border-2 border-ink font-black text-sm sm:text-base text-center cursor-pointer transition-all ${
-                        newMatchForm.category === cat
-                          ? 'bg-brand text-white shadow-brutal-sm'
-                          : 'bg-surface hover:bg-white'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
+                <div className="p-3 border-2 border-ink bg-brand text-white font-mono text-sm font-black uppercase shadow-brutal-sm flex items-center justify-between">
+                  <span>LIGA FUTSAL PELAJAR (LFP) 2026</span>
+                  <span className="bg-white text-ink px-2 py-0.5 text-xs font-bold">RESMI</span>
                 </div>
               </div>
 

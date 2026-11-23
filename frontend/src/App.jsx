@@ -29,7 +29,7 @@ function AppContent() {
   const changeRoute = setPage || navigateTo
   const userRole = currentUser?.role
 
-  // Proteksi rute: hanya role yang sah yang bisa membuka Admin / Operator / Scanner
+  // Proteksi rute & Pengalihan otomatis sesuai Peran (Role)
   useEffect(() => {
     const isAdminRoute = currentPage === 'admin' || currentPage === PAGE_NAMES.ADMIN
     const isOperatorRoute =
@@ -38,13 +38,29 @@ function AppContent() {
       currentPage === 'scanner' ||
       currentPage === PAGE_NAMES.SCANNER ||
       currentPage === PAGE_NAMES.OPERATOR_SCANNER
+    const isLandingRoute = currentPage === 'landing' || currentPage === PAGE_NAMES.LANDING || !currentPage
 
+    // 1. Cegah suporter biasa membuka panel admin / operator
     if (isAdminRoute && userRole !== 'admin') {
       changeRoute(PAGE_NAMES.LOGIN)
+      return
     }
 
     if (isOperatorRoute && userRole !== 'operator' && userRole !== 'admin') {
       changeRoute(PAGE_NAMES.LOGIN)
+      return
+    }
+
+    // 2. Operator yang sedang aktif langsung diarahkan ke Dashboard Operator, bukan halaman suporter
+    if (userRole === 'operator' && isLandingRoute) {
+      changeRoute(PAGE_NAMES.OPERATOR)
+      return
+    }
+
+    // 3. Admin yang sedang aktif diarahkan ke Admin Dashboard jika berada di landing
+    if (userRole === 'admin' && isLandingRoute) {
+      changeRoute(PAGE_NAMES.ADMIN)
+      return
     }
   }, [currentPage, userRole, changeRoute])
 

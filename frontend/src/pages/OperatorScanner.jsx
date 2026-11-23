@@ -35,6 +35,15 @@ export default function OperatorScanner() {
     setTicketInput('')
   }, [])
 
+  const handleResetCurrent = async () => {
+    try {
+      await futsaltixApi.resetTicketCheckIn(lastScanDetail.code)
+      closeModal()
+    } catch (e) {
+      alert('Gagal reset tiket: ' + (e.response?.data?.message || e.message))
+    }
+  }
+
   // Pintasan keyboard (Escape / Spacebar) saat modal hasil scan terbuka
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -140,7 +149,7 @@ export default function OperatorScanner() {
           <div className="flex flex-wrap items-center gap-2 mb-1.5 sm:mb-2">
             <button
               type="button"
-              onClick={() => navigateTo(PAGE_NAMES.OPERATOR_DASHBOARD)}
+              onClick={() => navigateTo(PAGE_NAMES.OPERATOR)}
               className="inline-flex items-center gap-1.5 border-2 border-ink bg-white px-2.5 sm:px-3 py-1 font-mono text-[11px] sm:text-xs font-black uppercase text-ink shadow-brutal-sm hover:bg-surface cursor-pointer"
             >
               <ArrowLeft size={14} /> Kembali ke Meja Wasit
@@ -455,6 +464,15 @@ export default function OperatorScanner() {
               >
                 Tutup &amp; Ulangi Scan (Spacebar / Esc)
               </button>
+              {(lastScanDetail.errorMessage?.includes('GANDA') || lastScanDetail.errorMessage?.includes('sudah') || lastScanDetail.errorMessage?.includes('terpakai')) && (
+                <button
+                  type="button"
+                  onClick={handleResetCurrent}
+                  className="border-2 border-ink bg-[#fef08a] text-ink px-4 py-2.5 sm:py-3 font-mono text-xs sm:text-sm font-black uppercase shadow-brutal-sm hover:bg-amber-200 cursor-pointer text-center"
+                >
+                  🔄 Reset Status Tiket (Demo)
+                </button>
+              )}
             </div>
           </div>
         </div>

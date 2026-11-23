@@ -4,7 +4,25 @@ import { PAGE_NAMES } from './navigationConstants.js'
 import { futsaltixApi } from '../services/futsaltixApi.js'
 
 export function NavigationProvider({ children }) {
-  const [currentPage, setCurrentPage] = useState(PAGE_NAMES.LANDING)
+  const [currentPage, setCurrentPage] = useState(() => {
+    try {
+      const hash = window.location.hash.replace('#/', '').replace('#', '')
+      const saved = localStorage.getItem('futsaltix_user')
+      const user = saved ? JSON.parse(saved) : null
+
+      if (hash && Object.values(PAGE_NAMES).includes(hash)) {
+        if (hash === PAGE_NAMES.LANDING || hash === '') {
+          if (user?.role === 'operator') return PAGE_NAMES.OPERATOR
+          if (user?.role === 'admin') return PAGE_NAMES.ADMIN
+        }
+        return hash
+      }
+
+      if (user?.role === 'operator') return PAGE_NAMES.OPERATOR
+      if (user?.role === 'admin') return PAGE_NAMES.ADMIN
+    } catch {}
+    return PAGE_NAMES.LANDING
+  })
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState(null)
 
@@ -53,18 +71,27 @@ export function NavigationProvider({ children }) {
     }
   }, [])
 
-  // Ambil tiket milik user yang sedang login
+  // Ambil tiket milik user yang sedang login dari MySQL
   const refreshMyTickets = useCallback(async () => {
     const token = localStorage.getItem('futsaltix_token')
-    if (!token) {
-      setMyTickets([])
-      return
-    }
+    let storedUser = null
     try {
-      const { data } = await futsaltixApi.getMyTickets()
-      setMyTickets(data.orders || [])
+      const rawUser = localStorage.getItem('futsaltix_user')
+      if (rawUser) storedUser = JSON.parse(rawUser)
+    } catch {
+      storedUser = null
+    }
+
+    const userId = storedUser?.id || (token ? undefined : 3)
+
+    try {
+      const { data } = await futsaltixApi.getMyTickets(userId ? { user_id: userId } : {})
+      const orderList = data.orders || []
+      setMyTickets(orderList)
+      return orderList
     } catch (error) {
       console.error('Gagal mengambil tiket saya:', error)
+      return []
     }
   }, [])
 
@@ -126,12 +153,24 @@ export function NavigationProvider({ children }) {
           localStorage.setItem('futsaltix_user', JSON.stringify(user))
           setCurrentUser({ ...user, isRegistered: true })
           refreshMyTickets()
+
+          const curHash = window.location.hash.replace('#/', '').replace('#', '')
+          if (!curHash || curHash === PAGE_NAMES.LANDING || curHash === 'landing') {
+            if (user?.role === 'operator') {
+              setCurrentPage(PAGE_NAMES.OPERATOR)
+            } else if (user?.role === 'admin') {
+              setCurrentPage(PAGE_NAMES.ADMIN)
+            }
+          }
         })
         .catch(() => {
           localStorage.removeItem('futsaltix_token')
           localStorage.removeItem('futsaltix_user')
           setCurrentUser(null)
+          refreshMyTickets()
         })
+    } else {
+      refreshMyTickets()
     }
   }, [refreshMatches, refreshMyTickets])
 
@@ -139,6 +178,23 @@ export function NavigationProvider({ children }) {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#/', '').replace('#', '')
+      let savedUser = null
+      try {
+        const saved = localStorage.getItem('futsaltix_user')
+        if (saved) savedUser = JSON.parse(saved)
+      } catch {}
+
+      if (hash === PAGE_NAMES.LANDING || hash === '' || hash === 'landing') {
+        if (savedUser?.role === 'operator') {
+          setCurrentPage(PAGE_NAMES.OPERATOR)
+          return
+        }
+        if (savedUser?.role === 'admin') {
+          setCurrentPage(PAGE_NAMES.ADMIN)
+          return
+        }
+      }
+
       if (Object.values(PAGE_NAMES).includes(hash)) {
         setCurrentPage(hash)
       }

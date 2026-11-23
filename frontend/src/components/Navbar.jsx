@@ -46,6 +46,16 @@ export default function Navbar() {
     setMobileMenuOpen(false)
   }
 
+  const handleBrandClick = () => {
+    if (userRole === 'OPERATOR') {
+      handleNavClick(PAGE_NAMES.OPERATOR)
+    } else if (userRole === 'ADMIN') {
+      handleNavClick(PAGE_NAMES.ADMIN)
+    } else {
+      handleNavClick(PAGE_NAMES.LANDING)
+    }
+  }
+
   return (
     <header className="w-full border-b-[2.5px] border-ink bg-[#f8faf9]/95 backdrop-blur-sm sticky top-0 z-40 shadow-brutal-sm">
       <div className="w-full max-w-[1440px] 2xl:max-w-[1560px] mx-auto flex items-center justify-between gap-2.5 sm:gap-4 px-3 sm:px-6 lg:px-8 2xl:px-10 py-2.5 sm:py-3.5">
@@ -53,7 +63,7 @@ export default function Navbar() {
         {/* LOGO & BRAND */}
         <button
           type="button"
-          onClick={() => handleNavClick(PAGE_NAMES.LANDING)}
+          onClick={handleBrandClick}
           className="flex items-center gap-2 sm:gap-3 group text-left cursor-pointer shrink-0 min-w-0"
         >
           <div className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center border-2 border-ink bg-brand text-white shadow-brutal-sm transition-transform group-hover:scale-105 shrink-0">
@@ -76,12 +86,12 @@ export default function Navbar() {
               )}
             </div>
             <div className="mt-0.5 sm:mt-1 font-mono text-[10px] sm:text-[13px] uppercase tracking-wider text-ink/75 font-semibold truncate">
-              Venue: <strong className="text-brand font-black">GGM Cianjur</strong>
+              <strong className="text-brand font-black">LFP 2026</strong> • GGM Cianjur
             </div>
           </div>
         </button>
 
-        {/* DESKTOP NAV */}
+        {/* DESKTOP NAV - PUBLIC */}
         {userRole === 'PUBLIC' && (
           <nav className="hidden items-center gap-5 xl:gap-8 lg:flex">
             <button type="button" onClick={() => handleNavClick(PAGE_NAMES.LANDING)} className={getNavBtnClass(PAGE_NAMES.LANDING)}>
@@ -99,6 +109,82 @@ export default function Navbar() {
             <button type="button" onClick={() => handleNavClick(PAGE_NAMES.TICKETS)} className={getNavBtnClass(PAGE_NAMES.TICKETS)}>
               <Ticket size={19} className="text-brand" />
               <span>Tiket Saya</span>
+            </button>
+          </nav>
+        )}
+
+        {/* DESKTOP NAV - OPERATOR */}
+        {userRole === 'OPERATOR' && (
+          <nav className="hidden items-center gap-3 xl:gap-5 lg:flex">
+            <button
+              type="button"
+              onClick={() => handleNavClick(PAGE_NAMES.OPERATOR)}
+              className={getNavBtnClass(PAGE_NAMES.OPERATOR)}
+            >
+              <SlidersHorizontal size={18} className="text-brand" />
+              <span>Dashboard Operator</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavClick(PAGE_NAMES.OPERATOR_SCANNER)}
+              className={getNavBtnClass(PAGE_NAMES.OPERATOR_SCANNER)}
+            >
+              <QrCode size={18} className="text-brand" />
+              <span>Scanner Gate</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavClick(PAGE_NAMES.BRACKET)}
+              className={getNavBtnClass(PAGE_NAMES.BRACKET)}
+            >
+              <Trophy size={18} className="text-brand" />
+              <span>Bagan Turnamen</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavClick(PAGE_NAMES.LIVESCORE)}
+              className={getNavBtnClass(PAGE_NAMES.LIVESCORE)}
+            >
+              <Radio size={18} className="text-danger animate-pulse" />
+              <span>Live Score</span>
+            </button>
+          </nav>
+        )}
+
+        {/* DESKTOP NAV - ADMIN */}
+        {userRole === 'ADMIN' && (
+          <nav className="hidden items-center gap-3 xl:gap-5 lg:flex">
+            <button
+              type="button"
+              onClick={() => handleNavClick(PAGE_NAMES.ADMIN)}
+              className={getNavBtnClass(PAGE_NAMES.ADMIN)}
+            >
+              <Shield size={18} className="text-brand" />
+              <span>Admin Panel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavClick(PAGE_NAMES.OPERATOR)}
+              className={getNavBtnClass(PAGE_NAMES.OPERATOR)}
+            >
+              <SlidersHorizontal size={18} className="text-brand" />
+              <span>Meja Wasit</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavClick(PAGE_NAMES.BRACKET)}
+              className={getNavBtnClass(PAGE_NAMES.BRACKET)}
+            >
+              <Trophy size={18} className="text-brand" />
+              <span>Bagan Turnamen</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavClick(PAGE_NAMES.LIVESCORE)}
+              className={getNavBtnClass(PAGE_NAMES.LIVESCORE)}
+            >
+              <Radio size={18} className="text-danger animate-pulse" />
+              <span>Live Score</span>
             </button>
           </nav>
         )}
@@ -155,6 +241,74 @@ export default function Navbar() {
         </div>
 
       </div>
+
+      {/* MOBILE MENU DROPDOWN */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-t-2 border-ink bg-white px-3 sm:px-6 py-3 space-y-2 shadow-brutal">
+          {userRole === 'PUBLIC' && (
+            <>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.LANDING)} className={getMobileBtnClass(PAGE_NAMES.LANDING)}>
+                <Home size={18} className="text-brand" />
+                <span>Jadwal Laga</span>
+              </button>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.BRACKET)} className={getMobileBtnClass(PAGE_NAMES.BRACKET)}>
+                <Trophy size={18} className="text-brand" />
+                <span>Bagan Turnamen</span>
+              </button>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.LIVESCORE)} className={getMobileBtnClass(PAGE_NAMES.LIVESCORE)}>
+                <Radio size={18} className="text-danger" />
+                <span>Live Score &amp; Hasil</span>
+              </button>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.TICKETS)} className={getMobileBtnClass(PAGE_NAMES.TICKETS)}>
+                <Ticket size={18} className="text-brand" />
+                <span>Tiket Saya</span>
+              </button>
+            </>
+          )}
+
+          {userRole === 'OPERATOR' && (
+            <>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.OPERATOR)} className={getMobileBtnClass(PAGE_NAMES.OPERATOR)}>
+                <SlidersHorizontal size={18} className="text-brand" />
+                <span>Dashboard Operator</span>
+              </button>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.OPERATOR_SCANNER)} className={getMobileBtnClass(PAGE_NAMES.OPERATOR_SCANNER)}>
+                <QrCode size={18} className="text-brand" />
+                <span>Scanner Gate</span>
+              </button>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.BRACKET)} className={getMobileBtnClass(PAGE_NAMES.BRACKET)}>
+                <Trophy size={18} className="text-brand" />
+                <span>Bagan Babak Gugur</span>
+              </button>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.LIVESCORE)} className={getMobileBtnClass(PAGE_NAMES.LIVESCORE)}>
+                <Radio size={18} className="text-danger" />
+                <span>Live Score</span>
+              </button>
+            </>
+          )}
+
+          {userRole === 'ADMIN' && (
+            <>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.ADMIN)} className={getMobileBtnClass(PAGE_NAMES.ADMIN)}>
+                <Shield size={18} className="text-brand" />
+                <span>Super Admin Panel</span>
+              </button>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.OPERATOR)} className={getMobileBtnClass(PAGE_NAMES.OPERATOR)}>
+                <SlidersHorizontal size={18} className="text-brand" />
+                <span>Meja Wasit</span>
+              </button>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.BRACKET)} className={getMobileBtnClass(PAGE_NAMES.BRACKET)}>
+                <Trophy size={18} className="text-brand" />
+                <span>Bagan Turnamen</span>
+              </button>
+              <button type="button" onClick={() => handleNavClick(PAGE_NAMES.LIVESCORE)} className={getMobileBtnClass(PAGE_NAMES.LIVESCORE)}>
+                <Radio size={18} className="text-danger" />
+                <span>Live Score</span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </header>
   )
 }

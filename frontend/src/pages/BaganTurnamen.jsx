@@ -9,11 +9,14 @@ import {
   Radio,
   Clock,
   Layers,
+  Sparkles,
+  ArrowRight,
+  ShieldAlert,
 } from 'lucide-react'
 
 function normalizeMatchNode(m, fallbackIndex = 1) {
-  const homeName = m.home_team?.name || m.home_placeholder || 'Menunggu Pemenang'
-  const awayName = m.away_team?.name || m.away_placeholder || 'Menunggu Pemenang'
+  const homeName = m.home_team?.name || m.homeTeam?.name || m.home_placeholder || 'Menunggu Pemenang'
+  const awayName = m.away_team?.name || m.awayTeam?.name || m.away_placeholder || 'Menunggu Pemenang'
   const scoreA = m.home_score ?? '-'
   const scoreB = m.away_score ?? '-'
   const status = (m.status || 'SCHEDULED').toUpperCase()
@@ -30,14 +33,14 @@ function normalizeMatchNode(m, fallbackIndex = 1) {
     : 'TBD'
 
   return {
-    id: m.id,
-    matchCode: m.match_code || `LAGA-${String(fallbackIndex).padStart(2, '0')}`,
-    court: m.arena || 'Lapangan Utama GGM',
+    id: m.id || `match-${fallbackIndex}`,
+    matchCode: m.match_code || m.bracket_slot || `LAGA-${String(fallbackIndex).padStart(2, '0')}`,
+    court: m.arena || m.venue || 'Lapangan Utama GGM',
     status,
     time: timeStr,
     dateStr: matchDate
       ? matchDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
-      : 'Jadwal Menyusul',
+      : 'Jadwal Resmi',
     teamA: homeName,
     teamB: awayName,
     scoreA,
@@ -46,55 +49,292 @@ function normalizeMatchNode(m, fallbackIndex = 1) {
   }
 }
 
+/**
+ * Kartu Pertandingan Standar Neobrutalism
+ */
+function MatchNodeCard({ match, isHighlighted }) {
+  if (!match) return null
+
+  const isLive = match.status === 'LIVE'
+  const isFinished = match.status === 'FINISHED'
+  const teamAWon = match.winner && match.winner === match.teamA
+  const teamBWon = match.winner && match.winner === match.teamB
+
+  return (
+    <div
+      className={`w-[230px] sm:w-[260px] h-[120px] border-2 border-ink bg-white shadow-brutal-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-brutal transition-all flex flex-col justify-between shrink-0 relative ${
+        isLive ? 'ring-2 ring-danger' : ''
+      }`}
+    >
+      {/* Header Bar */}
+      <div className="h-[28px] px-2.5 bg-surface border-b-2 border-ink flex items-center justify-between font-mono text-[11px] shrink-0">
+        <span className="font-bold text-ink truncate mr-1">
+          {match.matchCode} • {match.court.includes('Court A') ? 'Court A' : 'GGM'}
+        </span>
+        <span
+          className={`px-1.5 py-0.5 font-black text-[9px] sm:text-[10px] uppercase shrink-0 ${
+            isLive
+              ? 'bg-danger text-white animate-pulse'
+              : isFinished
+              ? 'bg-brand text-white'
+              : 'bg-white text-ink border border-ink'
+          }`}
+        >
+          {isLive ? 'LIVE' : isFinished ? 'SELESAI' : 'JADWAL'}
+        </span>
+      </div>
+
+      {/* Body: Two Teams */}
+      <div className="p-2 flex-1 flex flex-col justify-around gap-1 font-mono">
+        {/* Team A */}
+        <div
+          className={`flex items-center justify-between px-2 py-1 border transition-all text-xs ${
+            teamAWon
+              ? 'bg-[#dcfce7] border-brand font-black text-[#15803d]'
+              : 'border-transparent text-ink/85 font-semibold'
+          } ${isHighlighted(match.teamA) ? 'bg-[#fef08a] ring-2 ring-ink text-ink font-black' : ''}`}
+        >
+          <span className="truncate mr-2 font-bold">{match.teamA}</span>
+          <span className="font-mono font-black text-xs shrink-0">{match.scoreA}</span>
+        </div>
+
+        {/* Team B */}
+        <div
+          className={`flex items-center justify-between px-2 py-1 border transition-all text-xs ${
+            teamBWon
+              ? 'bg-[#dcfce7] border-brand font-black text-[#15803d]'
+              : 'border-transparent text-ink/85 font-semibold'
+          } ${isHighlighted(match.teamB) ? 'bg-[#fef08a] ring-2 ring-ink text-ink font-black' : ''}`}
+        >
+          <span className="truncate mr-2 font-bold">{match.teamB}</span>
+          <span className="font-mono font-black text-xs shrink-0">{match.scoreB}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Garis Penghubung Neobrutalism Lurus (Putaran 1 ke Putaran 2)
+ */
+function StraightConnector({ isWinner = false }) {
+  return (
+    <div className="w-10 sm:w-12 h-[120px] shrink-0 relative flex items-center justify-center select-none">
+      <svg className="w-full h-full overflow-visible" viewBox="0 0 48 120">
+        <path
+          d="M 0 60 H 48"
+          stroke={isWinner ? '#10b981' : '#191c1b'}
+          strokeWidth={isWinner ? '4' : '3'}
+          fill="none"
+          strokeLinecap="square"
+        />
+        <polygon
+          points="40,55 48,60 40,65"
+          fill={isWinner ? '#10b981' : '#191c1b'}
+        />
+        <rect
+          x="21"
+          y="57"
+          width="6"
+          height="6"
+          fill={isWinner ? '#10b981' : '#191c1b'}
+          stroke="#fff"
+          strokeWidth="1"
+        />
+      </svg>
+    </div>
+  )
+}
+
+/**
+ * Garis Penghubung Neobrutalism Fork (2 Laga Perempat Final -> 1 Laga Semifinal)
+ * Tinggi blok: 272px (120px + 32px gap + 120px)
+ */
+function BracketConnectorPair({ topWinner = false, bottomWinner = false }) {
+  const hasAdvance = topWinner || bottomWinner
+
+  return (
+    <div className="w-12 sm:w-14 h-[272px] shrink-0 relative flex items-center justify-center select-none">
+      <svg className="w-full h-full overflow-visible" viewBox="0 0 56 272">
+        {/* Cabang Atas (dari Laga A) */}
+        <path
+          d="M 0 60 H 28 V 136"
+          stroke={topWinner ? '#10b981' : '#191c1b'}
+          strokeWidth={topWinner ? '4' : '3'}
+          fill="none"
+          strokeLinecap="square"
+        />
+
+        {/* Cabang Bawah (dari Laga B) */}
+        <path
+          d="M 0 212 H 28 V 136"
+          stroke={bottomWinner ? '#10b981' : '#191c1b'}
+          strokeWidth={bottomWinner ? '4' : '3'}
+          fill="none"
+          strokeLinecap="square"
+        />
+
+        {/* Batang Tengah Menuju Semifinal */}
+        <path
+          d="M 28 136 H 56"
+          stroke={hasAdvance ? '#10b981' : '#191c1b'}
+          strokeWidth={hasAdvance ? '4' : '3'}
+          fill="none"
+          strokeLinecap="square"
+        />
+
+        {/* Junction Node di Tengah */}
+        <rect
+          x="24"
+          y="132"
+          width="8"
+          height="8"
+          fill={hasAdvance ? '#10b981' : '#191c1b'}
+          stroke="#ffffff"
+          strokeWidth="1.5"
+        />
+
+        {/* Panah Arah Masuk ke Semifinal */}
+        <polygon
+          points="48,131 56,136 48,141"
+          fill={hasAdvance ? '#10b981' : '#191c1b'}
+        />
+
+        {/* Badge Pemenang / Lolos */}
+        {topWinner && (
+          <g transform="translate(30, 88)">
+            <rect x="0" y="-8" width="22" height="15" fill="#10b981" stroke="#191c1b" strokeWidth="1.5" />
+            <text x="11" y="3" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="900" fontFamily="monospace">
+              WIN
+            </text>
+          </g>
+        )}
+        {bottomWinner && (
+          <g transform="translate(30, 170)">
+            <rect x="0" y="-8" width="22" height="15" fill="#10b981" stroke="#191c1b" strokeWidth="1.5" />
+            <text x="11" y="3" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="900" fontFamily="monospace">
+              WIN
+            </text>
+          </g>
+        )}
+      </svg>
+    </div>
+  )
+}
+
+/**
+ * Garis Penghubung Neobrutalism Grand Fork (2 Laga Semifinal -> Grand Final)
+ * Tinggi total kanvas: 608px (272px + 64px gap + 272px)
+ */
+function BracketConnectorFinal({ topWinner = false, bottomWinner = false }) {
+  const hasFinalist = topWinner || bottomWinner
+
+  return (
+    <div className="w-12 sm:w-14 h-[608px] shrink-0 relative flex items-center justify-center select-none">
+      <svg className="w-full h-full overflow-visible" viewBox="0 0 56 608">
+        {/* Cabang Atas (dari SF-01 di y=136) */}
+        <path
+          d="M 0 136 H 28 V 304"
+          stroke={topWinner ? '#10b981' : '#191c1b'}
+          strokeWidth={topWinner ? '4' : '3'}
+          fill="none"
+          strokeLinecap="square"
+        />
+
+        {/* Cabang Bawah (dari SF-02 di y=472) */}
+        <path
+          d="M 0 472 H 28 V 304"
+          stroke={bottomWinner ? '#10b981' : '#191c1b'}
+          strokeWidth={bottomWinner ? '4' : '3'}
+          fill="none"
+          strokeLinecap="square"
+        />
+
+        {/* Batang Tengah Menuju Grand Final di y=304 */}
+        <path
+          d="M 28 304 H 56"
+          stroke={hasFinalist ? '#10b981' : '#191c1b'}
+          strokeWidth={hasFinalist ? '4' : '3'}
+          fill="none"
+          strokeLinecap="square"
+        />
+
+        {/* Trophy Junction Node */}
+        <rect
+          x="23"
+          y="299"
+          width="10"
+          height="10"
+          fill="#fef08a"
+          stroke="#191c1b"
+          strokeWidth="2"
+        />
+
+        {/* Panah Arah Masuk ke Grand Final */}
+        <polygon
+          points="48,299 56,304 48,309"
+          fill="#191c1b"
+        />
+
+        {/* Badge Finalis */}
+        {topWinner && (
+          <g transform="translate(30, 210)">
+            <rect x="0" y="-8" width="24" height="16" fill="#10b981" stroke="#191c1b" strokeWidth="1.5" />
+            <text x="12" y="4" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="900" fontFamily="monospace">
+              FINAL
+            </text>
+          </g>
+        )}
+        {bottomWinner && (
+          <g transform="translate(30, 390)">
+            <rect x="0" y="-8" width="24" height="16" fill="#10b981" stroke="#191c1b" strokeWidth="1.5" />
+            <text x="12" y="4" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="900" fontFamily="monospace">
+              FINAL
+            </text>
+          </g>
+        )}
+      </svg>
+    </div>
+  )
+}
+
 export default function BaganTurnamen() {
   const { matches } = useNavigation()
-  const [selectedCategory, setSelectedCategory] = useState('SMA/SMK')
   const [searchQuery, setSearchQuery] = useState('')
   const [downloadSuccess, setDownloadSuccess] = useState(false)
   const [zoomLevel, setZoomLevel] = useState(1)
 
   const currentBracket = useMemo(() => {
-    const targetCode = selectedCategory === 'SMA/SMK' ? 'SMA' : selectedCategory
-    const categoryLabelMap = {
-      SD: 'Kategori Pelajar SD (U-12)',
-      SMP: 'Kategori Pelajar SMP (U-15)',
-      'SMA/SMK': 'Kategori Pelajar SMA / SMK (U-18)',
-    }
-
-    const catMatches = (matches || []).filter((m) => {
-      const code = (m.category?.code || 'SMA').toUpperCase()
-      return code === targetCode
-    })
+    const catMatches = matches || []
 
     const round16Raw = catMatches.filter((m) => m.stage === 'ROUND_16' || m.stage === 'GROUP')
     const qfRaw = catMatches.filter((m) => m.stage === 'QUARTER_FINAL')
     const sfRaw = catMatches.filter((m) => m.stage === 'SEMI_FINAL')
     const finalRaw = catMatches.filter((m) => m.stage === 'FINAL')
 
-    const round16 =
-      round16Raw.length > 0
-        ? round16Raw.map((m, idx) => normalizeMatchNode(m, idx + 1))
-        : [
-            { id: 'r16-1', matchCode: 'R16-01', court: 'GGM Court A', status: 'SCHEDULED', teamA: 'Juara Grup A', teamB: 'Runner-up Grup B', scoreA: '-', scoreB: '-', winner: null },
-            { id: 'r16-2', matchCode: 'R16-02', court: 'GGM Court A', status: 'SCHEDULED', teamA: 'Juara Grup C', teamB: 'Runner-up Grup D', scoreA: '-', scoreB: '-', winner: null },
-          ]
+    // 1. Putaran 1: 4 Laga Penyisihan / Babak Grup
+    const round16 = [
+      round16Raw[0] ? normalizeMatchNode(round16Raw[0], 1) : { id: 'r16-1', matchCode: 'GR-01', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMAN 1 Cianjur', teamB: 'SMAN 2 Cianjur', scoreA: 4, scoreB: 2, winner: 'SMAN 1 Cianjur' },
+      round16Raw[1] ? normalizeMatchNode(round16Raw[1], 2) : { id: 'r16-2', matchCode: 'GR-02', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMKN 1 Cianjur', teamB: 'MAN 1 Cianjur', scoreA: 3, scoreB: 1, winner: 'SMKN 1 Cianjur' },
+      round16Raw[2] ? normalizeMatchNode(round16Raw[2], 3) : { id: 'r16-3', matchCode: 'GR-03', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMKN 2 Cianjur', teamB: 'SMAN 1 Cilaku', scoreA: 2, scoreB: 2, winner: null },
+      round16Raw[3] ? normalizeMatchNode(round16Raw[3], 4) : { id: 'r16-4', matchCode: 'GR-04', court: 'GGM Court A', status: 'FINISHED', teamA: 'SMAN 1 Sukaresmi', teamB: 'SMA Mardi Waluyo', scoreA: 3, scoreB: 0, winner: 'SMAN 1 Sukaresmi' },
+    ]
 
-    const quarterFinals =
-      qfRaw.length > 0
-        ? qfRaw.map((m, idx) => normalizeMatchNode(m, idx + 1))
-        : [
-            { id: 'qf-1', matchCode: 'QF-01', court: 'GGM Court A', status: 'SCHEDULED', teamA: 'Pemenang R16-01', teamB: 'Pemenang R16-02', scoreA: '-', scoreB: '-', winner: null },
-            { id: 'qf-2', matchCode: 'QF-02', court: 'GGM Court A', status: 'SCHEDULED', teamA: 'Pemenang R16-03', teamB: 'Pemenang R16-04', scoreA: '-', scoreB: '-', winner: null },
-          ]
+    // 2. Putaran 2: 4 Laga Perempat Final (8 Besar)
+    const quarterFinals = [
+      qfRaw[0] ? normalizeMatchNode(qfRaw[0], 1) : { id: 'qf-1', matchCode: 'QF-01', court: 'GGM Court A (Vinyl)', status: 'LIVE', teamA: 'SMAN 1 Cianjur', teamB: 'SMKN 1 Cianjur', scoreA: 3, scoreB: 2, winner: null },
+      qfRaw[1] ? normalizeMatchNode(qfRaw[1], 2) : { id: 'qf-2', matchCode: 'QF-02', court: 'GGM Court A (Vinyl)', status: 'UPCOMING', teamA: 'MAN 1 Cianjur', teamB: 'SMAN 2 Cianjur', scoreA: '-', scoreB: '-', winner: null },
+      qfRaw[2] ? normalizeMatchNode(qfRaw[2], 3) : { id: 'qf-3', matchCode: 'QF-03', court: 'GGM Court A (Vinyl)', status: 'UPCOMING', teamA: 'SMKN 2 Cianjur', teamB: 'SMAN 1 Sukaresmi', scoreA: '-', scoreB: '-', winner: null },
+      qfRaw[3] ? normalizeMatchNode(qfRaw[3], 4) : { id: 'qf-4', matchCode: 'QF-04', court: 'GGM Court A (Vinyl)', status: 'UPCOMING', teamA: 'SMAN 1 Cilaku', teamB: 'SMA Mardi Waluyo', scoreA: '-', scoreB: '-', winner: null },
+    ]
 
-    const semiFinals =
-      sfRaw.length > 0
-        ? sfRaw.map((m, idx) => normalizeMatchNode(m, idx + 1))
-        : [
-            { id: 'sf-1', matchCode: 'SF-01', court: 'GGM Court A', status: 'SCHEDULED', time: '14:00 WIB', teamA: 'Pemenang QF-01', teamB: 'Pemenang QF-02', scoreA: '-', scoreB: '-', winner: null },
-            { id: 'sf-2', matchCode: 'SF-02', court: 'GGM Court A', status: 'SCHEDULED', time: '15:15 WIB', teamA: 'Pemenang QF-03', teamB: 'Pemenang QF-04', scoreA: '-', scoreB: '-', winner: null },
-          ]
+    // 3. Putaran 3: 2 Laga Semifinal
+    const semiFinals = [
+      sfRaw[0] ? normalizeMatchNode(sfRaw[0], 1) : { id: 'sf-1', matchCode: 'SF-01', court: 'GGM Court A', status: 'UPCOMING', time: '15:30 WIB', teamA: 'Pemenang QF-01', teamB: 'Pemenang QF-02', scoreA: '-', scoreB: '-', winner: null },
+      sfRaw[1] ? normalizeMatchNode(sfRaw[1], 2) : { id: 'sf-2', matchCode: 'SF-02', court: 'GGM Court A', status: 'UPCOMING', time: '19:30 WIB', teamA: 'Pemenang QF-03', teamB: 'Pemenang QF-04', scoreA: '-', scoreB: '-', winner: null },
+    ]
 
+    // 4. Putaran 4: Grand Final
     const grandFinal =
       finalRaw.length > 0
         ? normalizeMatchNode(finalRaw[0], 1)
@@ -102,25 +342,25 @@ export default function BaganTurnamen() {
             id: 'final-1',
             matchCode: 'FINAL',
             court: 'GGM Court A Vinyl',
-            status: 'SCHEDULED',
-            dateStr: 'Puncak Piala Bupati 2026',
-            time: '16:30 WIB',
+            status: 'UPCOMING',
+            dateStr: 'Minggu, 22 Nov 2026',
+            time: '19:30 WIB',
             teamA: 'Pemenang SF-01',
             teamB: 'Pemenang SF-02',
-            scoreA: 'TBD',
-            scoreB: 'TBD',
+            scoreA: '-',
+            scoreB: '-',
             winner: null,
           }
 
     return {
-      categoryName: categoryLabelMap[selectedCategory] || selectedCategory,
-      venue: 'Gelanggang Generasi Muda (GGM) Cianjur',
+      categoryName: 'Liga Futsal Pelajar (LFP) Cianjur 2026',
+      venue: 'GOR Gelanggang Generasi Muda (GGM) Cianjur',
       round16,
       quarterFinals,
       semiFinals,
       grandFinal,
     }
-  }, [matches, selectedCategory])
+  }, [matches])
 
   const handleDownloadPDF = () => {
     setDownloadSuccess(true)
@@ -153,7 +393,7 @@ export default function BaganTurnamen() {
         </div>
       </div>
 
-      {/* 2. HEADER KONTROL & SELECTOR 3 KATEGORI */}
+      {/* 2. HEADER KONTROL & BADGE RESMI */}
       <section className="border-2 border-ink bg-white p-4 sm:p-6 shadow-brutal">
         <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-5 sm:gap-6 pb-5 sm:pb-6 border-b-2 border-ink">
           <div className="max-w-3xl">
@@ -167,34 +407,14 @@ export default function BaganTurnamen() {
             </h1>
 
             <p className="mt-2 text-ink/75 text-xs sm:text-base font-medium">
-              Pantau jalannya knockout stage turnamen futsal antar-sekolah se-Kabupaten Cianjur. Data tersinkronisasi otomatis dengan peluit akhir dari meja wasit GGM.
+              Pantau alur pertandingan resmi Liga Futsal Pelajar (LFP) 2026. Garis bagan tersambung otomatis secara real-time dari babak penyisihan hingga tangga juara Grand Final.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <span className="font-mono text-xs sm:text-sm uppercase font-black text-ink flex items-center gap-1.5 shrink-0">
-              <Layers size={16} className="text-brand shrink-0" /> PILIH DIVISI:
-            </span>
-            <div className="flex flex-wrap sm:inline-flex p-1 sm:p-1.5 bg-surface border-2 border-ink shadow-brutal-sm gap-1 sm:gap-1.5 w-full sm:w-auto">
-              {[
-                { key: 'SD', label: '1. Kategori SD', activeBg: 'bg-brand text-white' },
-                { key: 'SMP', label: '2. Kategori SMP', activeBg: 'bg-brand text-white' },
-                { key: 'SMA/SMK', label: '3. Kategori SMA/SMK', activeBg: 'bg-ink text-white' },
-              ].map((cat) => (
-                <button
-                  key={cat.key}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat.key)}
-                  className={`flex-1 min-w-[90px] sm:flex-initial text-center px-2.5 sm:px-5 py-1.5 sm:py-2 font-mono text-[11px] sm:text-sm font-black uppercase transition-all cursor-pointer ${
-                    selectedCategory === cat.key
-                      ? `${cat.activeBg} shadow-brutal-sm`
-                      : 'bg-transparent text-ink/80 hover:bg-white hover:text-ink'
-                  }`}
-                >
-                  {selectedCategory === cat.key && '✔ '}
-                  {cat.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-2 px-4 py-2 bg-brand text-white border-2 border-ink shadow-brutal font-mono text-xs sm:text-sm font-black uppercase">
+              <Trophy size={16} className="text-accent shrink-0" />
+              <span>DIVISI RESMI: LFP 2026 (TINGKAT SMA/SMK)</span>
             </div>
           </div>
         </div>
@@ -232,11 +452,19 @@ export default function BaganTurnamen() {
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => setZoomLevel(zoomLevel === 1 ? 1.15 : 1)}
-                className="p-1.5 sm:p-2 border-2 border-ink bg-white shadow-brutal-sm hover:bg-surface text-ink cursor-pointer"
-                title="Toggle Zoom Bagan"
+                onClick={() => setZoomLevel((prev) => Math.min(1.3, prev + 0.1))}
+                className="p-1.5 sm:p-2 border-2 border-ink bg-white shadow-brutal-sm hover:bg-surface text-ink font-mono font-black text-xs cursor-pointer"
+                title="Perbesar Bagan"
               >
-                <Maximize2 size={15} />
+                +
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoomLevel((prev) => Math.max(0.8, prev - 0.1))}
+                className="p-1.5 sm:p-2 border-2 border-ink bg-white shadow-brutal-sm hover:bg-surface text-ink font-mono font-black text-xs cursor-pointer"
+                title="Perkecil Bagan"
+              >
+                -
               </button>
               <button
                 type="button"
@@ -254,16 +482,17 @@ export default function BaganTurnamen() {
         </div>
       </section>
 
-      {/* 3. BRACKET CANVAS */}
+      {/* 3. BRACKET CANVAS DENGAN GARIS PENGHUBUNG LENGKAP */}
       <section className="border-2 border-ink bg-white shadow-brutal overflow-hidden">
+        {/* Top Status Bar */}
         <div className="bg-ink text-white px-3 sm:px-4 py-2 sm:py-2.5 flex flex-wrap items-center justify-between border-b-2 border-ink gap-2">
           <div className="flex items-center gap-2 font-mono text-[11px] sm:text-xs font-bold uppercase">
             <span className="w-2.5 sm:w-3 h-2.5 sm:h-3 bg-brand border border-white shrink-0" />
             <span className="truncate">DIVISI AKTIF: {currentBracket.categoryName} • {currentBracket.venue}</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 font-mono text-[10px] sm:text-[11px] text-[#79db8d] uppercase">
-            <span>● HIJAU: LOLOS</span>
-            <span>● MERAH: LIVE</span>
+            <span>● HIJAU: LOLOS KE BABAK BERIKUTNYA</span>
+            <span>● MERAH: LIVE MATCH</span>
           </div>
         </div>
 
@@ -272,14 +501,18 @@ export default function BaganTurnamen() {
           <span>↔ Geser layar ke samping untuk melihat seluruh bagan babak gugur</span>
         </div>
 
+        {/* Horizontal Scrollable Bracket Canvas */}
         <div
-          className="p-3 sm:p-6 overflow-x-auto custom-scrollbar bg-[#f8faf9] min-h-[580px] sm:min-h-[640px]"
+          className="p-4 sm:p-8 overflow-x-auto custom-scrollbar bg-[#f8faf9]"
           style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }}
         >
-          <div className="min-w-[1050px] sm:min-w-[1100px] grid grid-cols-4 gap-4 sm:gap-6 relative">
-            {/* KOLOM 1: PENYISIHAN / 16 BESAR */}
-            <div className="flex flex-col">
-              <div className="bg-white border-2 border-ink p-2.5 sm:p-3 mb-4 shadow-brutal-sm text-center">
+          <div className="min-w-[1240px] flex items-start gap-0 relative">
+            
+            {/* ======================================================== */}
+            {/* KOLOM 1: PENYISIHAN / 16 BESAR                           */}
+            {/* ======================================================== */}
+            <div className="flex flex-col w-[230px] sm:w-[260px] shrink-0">
+              <div className="bg-white border-2 border-ink p-2.5 sm:p-3 mb-5 shadow-brutal-sm text-center">
                 <span className="font-mono text-[10px] sm:text-[11px] bg-ink text-white px-2 py-0.5 inline-block mb-1 font-bold">
                   PUTARAN 1
                 </span>
@@ -287,125 +520,98 @@ export default function BaganTurnamen() {
                   PENYISIHAN / 16 BESAR
                 </h3>
                 <p className="font-mono text-[10px] sm:text-[11px] text-ink/70">
-                  {currentBracket.round16.length} LAGA TERDAFTAR
+                  {currentBracket.round16.length} LAGA GRUP AWAL
                 </p>
               </div>
 
-              <div className="flex flex-col gap-4">
-                {currentBracket.round16.map((match) => (
-                  <div
-                    key={match.id}
-                    className={`border-2 border-ink bg-white shadow-brutal-sm hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all ${
-                      match.status === 'LIVE' ? 'ring-2 ring-danger' : ''
-                    }`}
-                  >
-                    <div className="flex justify-between items-center px-2.5 sm:px-3 py-1.5 bg-surface border-b-2 border-ink font-mono text-[11px] sm:text-xs">
-                      <span className="font-bold text-ink truncate">{match.matchCode} • {match.court}</span>
-                      <span
-                        className={`px-1.5 sm:px-2 py-0.5 font-bold text-[10px] sm:text-[11px] shrink-0 ml-1 ${
-                          match.status === 'LIVE'
-                            ? 'bg-danger text-white animate-pulse'
-                            : match.status === 'FINISHED'
-                            ? 'bg-brand text-white'
-                            : 'bg-white text-ink border border-ink'
-                        }`}
-                      >
-                        {match.status === 'LIVE' ? 'LIVE' : match.status === 'FINISHED' ? 'SELESAI' : 'JADWAL'}
-                      </span>
-                    </div>
-
-                    <div className="p-2 space-y-1.5">
-                      <div
-                        className={`flex items-center justify-between px-2.5 py-1.5 border transition-all ${
-                          match.winner === match.teamA
-                            ? 'bg-brand-light/60 border-brand font-black text-brand'
-                            : 'border-transparent text-ink/80 font-medium'
-                        } ${filterTeamHighlight(match.teamA) ? 'ring-2 ring-yellow-400 font-extrabold' : ''}`}
-                      >
-                        <span className="text-xs sm:text-sm truncate">{match.teamA}</span>
-                        <span className="font-mono text-xs sm:text-sm font-black">{match.scoreA}</span>
-                      </div>
-
-                      <div
-                        className={`flex items-center justify-between px-2.5 py-1.5 border transition-all ${
-                          match.winner === match.teamB
-                            ? 'bg-brand-light/60 border-brand font-black text-brand'
-                            : 'border-transparent text-ink/80 font-medium'
-                        } ${filterTeamHighlight(match.teamB) ? 'ring-2 ring-yellow-400 font-extrabold' : ''}`}
-                      >
-                        <span className="text-xs sm:text-sm truncate">{match.teamB}</span>
-                        <span className="font-mono text-xs sm:text-sm font-black">{match.scoreB}</span>
-                      </div>
-                    </div>
-                  </div>
+              {/* Stack 4 Laga Penyisihan (Tinggi total 608px) */}
+              <div className="flex flex-col h-[608px] justify-between">
+                {currentBracket.round16.map((m) => (
+                  <MatchNodeCard
+                    key={m.id}
+                    match={m}
+                    isHighlighted={filterTeamHighlight}
+                  />
                 ))}
               </div>
             </div>
 
-            {/* KOLOM 2: PEREMPAT FINAL */}
-            <div className="flex flex-col">
-              <div className="bg-white border-2 border-ink p-2.5 sm:p-3 mb-4 shadow-brutal-sm text-center">
+            {/* ======================================================== */}
+            {/* KONEKTOR 1: PENYISIHAN -> PEREMPAT FINAL                  */}
+            {/* ======================================================== */}
+            <div className="flex flex-col h-[608px] justify-between mt-[68px] sm:mt-[74px]">
+              {currentBracket.round16.map((m) => (
+                <StraightConnector
+                  key={`conn1-${m.id}`}
+                  isWinner={m.status === 'FINISHED' && Boolean(m.winner)}
+                />
+              ))}
+            </div>
+
+            {/* ======================================================== */}
+            {/* KOLOM 2: PEREMPAT FINAL (8 BESAR)                        */}
+            {/* ======================================================== */}
+            <div className="flex flex-col w-[230px] sm:w-[260px] shrink-0">
+              <div className="bg-white border-2 border-ink p-2.5 sm:p-3 mb-5 shadow-brutal-sm text-center">
                 <span className="font-mono text-[10px] sm:text-[11px] bg-brand text-white px-2 py-0.5 inline-block mb-1 font-bold">
                   PUTARAN 2
                 </span>
                 <h3 className="font-display text-sm sm:text-base font-bold uppercase text-ink">
                   PEREMPAT FINAL
                 </h3>
-                <p className="font-mono text-[10px] sm:text-[11px] text-ink/70">8 BESAR GUGUR</p>
+                <p className="font-mono text-[10px] sm:text-[11px] text-ink/70">8 BESAR BABAK GUGUR</p>
               </div>
 
-              <div className="flex flex-col gap-8 justify-around h-full">
-                {currentBracket.quarterFinals.map((match) => (
-                  <div
-                    key={match.id}
-                    className={`border-2 border-ink bg-white shadow-brutal-sm transition-all ${
-                      match.status === 'LIVE' ? 'ring-2 ring-danger' : ''
-                    }`}
-                  >
-                    <div className="flex justify-between items-center px-2.5 sm:px-3 py-1.5 bg-surface border-b-2 border-ink font-mono text-[11px] sm:text-xs">
-                      <span className="font-bold text-ink truncate">{match.matchCode} • {match.court}</span>
-                      {match.status === 'LIVE' ? (
-                        <span className="bg-danger text-white px-1.5 sm:px-2 py-0.5 font-bold text-[10px] sm:text-[11px] flex items-center gap-1 animate-pulse shrink-0 ml-1">
-                          <Radio size={11} /> LIVE
-                        </span>
-                      ) : (
-                        <span className="bg-surface-variant text-ink px-1.5 sm:px-2 py-0.5 font-bold text-[10px] sm:text-[11px] shrink-0 ml-1">
-                          {match.status === 'FINISHED' ? 'SELESAI' : 'MENDATANG'}
-                        </span>
-                      )}
-                    </div>
+              {/* 2 Blok Pasangan QF (Total tinggi 608px) */}
+              <div className="flex flex-col h-[608px] justify-between">
+                {/* Blok Pasangan 1 (QF-01 + QF-02) -> Tinggi 272px */}
+                <div className="flex flex-col h-[272px] justify-between">
+                  <MatchNodeCard
+                    match={currentBracket.quarterFinals[0]}
+                    isHighlighted={filterTeamHighlight}
+                  />
+                  <MatchNodeCard
+                    match={currentBracket.quarterFinals[1]}
+                    isHighlighted={filterTeamHighlight}
+                  />
+                </div>
 
-                    <div className="p-2 space-y-1.5">
-                      <div
-                        className={`flex items-center justify-between px-2.5 py-1.5 border ${
-                          match.winner === match.teamA
-                            ? 'bg-brand-light/60 border-brand font-black text-brand'
-                            : 'border-transparent text-ink/80 font-medium'
-                        } ${filterTeamHighlight(match.teamA) ? 'ring-2 ring-yellow-400 font-extrabold' : ''}`}
-                      >
-                        <span className="text-xs sm:text-sm truncate">{match.teamA}</span>
-                        <span className="font-mono text-xs sm:text-sm font-black">{match.scoreA}</span>
-                      </div>
-
-                      <div
-                        className={`flex items-center justify-between px-2.5 py-1.5 border ${
-                          match.winner === match.teamB
-                            ? 'bg-brand-light/60 border-brand font-black text-brand'
-                            : 'border-transparent text-ink/80 font-medium'
-                        } ${filterTeamHighlight(match.teamB) ? 'ring-2 ring-yellow-400 font-extrabold' : ''}`}
-                      >
-                        <span className="text-xs sm:text-sm truncate">{match.teamB}</span>
-                        <span className="font-mono text-xs sm:text-sm font-black">{match.scoreB}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {/* Blok Pasangan 2 (QF-03 + QF-04) -> Tinggi 272px */}
+                <div className="flex flex-col h-[272px] justify-between">
+                  <MatchNodeCard
+                    match={currentBracket.quarterFinals[2]}
+                    isHighlighted={filterTeamHighlight}
+                  />
+                  <MatchNodeCard
+                    match={currentBracket.quarterFinals[3]}
+                    isHighlighted={filterTeamHighlight}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* KOLOM 3: SEMIFINAL */}
-            <div className="flex flex-col">
-              <div className="bg-white border-2 border-ink p-2.5 sm:p-3 mb-4 shadow-brutal-sm text-center">
+            {/* ======================================================== */}
+            {/* KONEKTOR 2: PEREMPAT FINAL -> SEMIFINAL (FORK LINES)     */}
+            {/* ======================================================== */}
+            <div className="flex flex-col h-[608px] justify-between mt-[68px] sm:mt-[74px]">
+              {/* Fork Connector Pasangan 1 (QF-01 & QF-02 -> SF-01) */}
+              <BracketConnectorPair
+                topWinner={Boolean(currentBracket.quarterFinals[0]?.winner)}
+                bottomWinner={Boolean(currentBracket.quarterFinals[1]?.winner)}
+              />
+
+              {/* Fork Connector Pasangan 2 (QF-03 & QF-04 -> SF-02) */}
+              <BracketConnectorPair
+                topWinner={Boolean(currentBracket.quarterFinals[2]?.winner)}
+                bottomWinner={Boolean(currentBracket.quarterFinals[3]?.winner)}
+              />
+            </div>
+
+            {/* ======================================================== */}
+            {/* KOLOM 3: SEMIFINAL                                       */}
+            {/* ======================================================== */}
+            <div className="flex flex-col w-[230px] sm:w-[260px] shrink-0">
+              <div className="bg-white border-2 border-ink p-2.5 sm:p-3 mb-5 shadow-brutal-sm text-center">
                 <span className="font-mono text-[10px] sm:text-[11px] bg-[#cea700] text-black px-2 py-0.5 inline-block mb-1 font-bold">
                   PUTARAN 3
                 </span>
@@ -415,77 +621,125 @@ export default function BaganTurnamen() {
                 <p className="font-mono text-[10px] sm:text-[11px] text-ink/70">TIKET KE GRAND FINAL</p>
               </div>
 
-              <div className="flex flex-col gap-12 sm:gap-16 justify-around h-full">
-                {currentBracket.semiFinals.map((match) => (
-                  <div
-                    key={match.id}
-                    className="border-2 border-ink bg-white shadow-brutal-sm"
-                  >
-                    <div className="flex justify-between items-center px-2.5 sm:px-3 py-1.5 bg-[#dae2fd] border-b-2 border-ink font-mono text-[11px] sm:text-xs">
-                      <span className="font-bold text-ink truncate">{match.matchCode} • {match.court}</span>
-                      <span className="bg-ink text-white px-2 py-0.5 font-bold text-[10px] sm:text-[11px] shrink-0 ml-1">
-                        {match.time}
+              {/* 2 Laga Semifinal yang tepat berhadapan dengan pusat fork connector */}
+              <div className="flex flex-col h-[608px] justify-between">
+                {/* SF-01 berada di pusat vertikal QF-01 & QF-02 */}
+                <div className="h-[272px] flex items-center justify-center">
+                  <MatchNodeCard
+                    match={currentBracket.semiFinals[0]}
+                    isHighlighted={filterTeamHighlight}
+                  />
+                </div>
+
+                {/* SF-02 berada di pusat vertikal QF-03 & QF-04 */}
+                <div className="h-[272px] flex items-center justify-center">
+                  <MatchNodeCard
+                    match={currentBracket.semiFinals[1]}
+                    isHighlighted={filterTeamHighlight}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ======================================================== */}
+            {/* KONEKTOR 3: SEMIFINAL -> GRAND FINAL (CHAMPIONSHIP FORK) */}
+            {/* ======================================================== */}
+            <div className="flex flex-col h-[608px] justify-center mt-[68px] sm:mt-[74px]">
+              <BracketConnectorFinal
+                topWinner={Boolean(currentBracket.semiFinals[0]?.winner)}
+                bottomWinner={Boolean(currentBracket.semiFinals[1]?.winner)}
+              />
+            </div>
+
+            {/* ======================================================== */}
+            {/* KOLOM 4: GRAND FINAL & PEREBUTAN JUARA 3                 */}
+            {/* ======================================================== */}
+            <div className="flex flex-col w-[270px] sm:w-[300px] shrink-0">
+              <div className="bg-white border-2 border-ink p-2.5 sm:p-3 mb-5 shadow-brutal-sm text-center">
+                <span className="font-mono text-[10px] sm:text-[11px] bg-ink text-[#fef08a] px-2 py-0.5 inline-block mb-1 font-black">
+                  PUNCAK PIALA BUPATI
+                </span>
+                <h3 className="font-display text-sm sm:text-base font-bold uppercase text-ink">
+                  PARTAI FINAL LFP 2026
+                </h3>
+                <p className="font-mono text-[10px] sm:text-[11px] text-ink/70">PENENTUAN JUARA UTAMA</p>
+              </div>
+
+              {/* Box Grand Final & Juara 3 */}
+              <div className="flex flex-col h-[608px] justify-between">
+                {/* Kartu Utama Grand Final (Tepat di sumbu simetri SF-01 & SF-02) */}
+                <div className="border-3 border-ink bg-[#fef08a] p-4 sm:p-5 shadow-brutal text-center relative mt-8">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-ink text-white px-3.5 py-1 font-mono text-[10px] sm:text-xs font-black uppercase border border-ink shadow-brutal-sm whitespace-nowrap">
+                    PUNCAK PIALA BUPATI 2026
+                  </div>
+
+                  <div className="flex justify-center my-2 sm:my-3">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-ink bg-brand text-white flex items-center justify-center shadow-brutal-sm">
+                      <Trophy size={26} className="sm:size-7" />
+                    </div>
+                  </div>
+
+                  <h3 className="font-display text-lg sm:text-2xl font-black uppercase text-ink">
+                    GRAND FINAL
+                  </h3>
+                  <p className="font-mono text-xs sm:text-sm text-ink/80 mt-1 font-bold">
+                    {currentBracket.grandFinal.dateStr} • {currentBracket.grandFinal.time}
+                  </p>
+
+                  <div className="mt-3 sm:mt-4 p-3 sm:p-3.5 bg-white border-2 border-ink space-y-2 text-left font-mono text-xs sm:text-sm font-bold shadow-brutal-sm">
+                    <div
+                      className={`flex justify-between items-center py-1.5 border-b border-ink/20 ${
+                        filterTeamHighlight(currentBracket.grandFinal.teamA)
+                          ? 'bg-[#fef08a] px-1 font-black ring-2 ring-ink'
+                          : ''
+                      }`}
+                    >
+                      <span className="text-ink truncate font-bold mr-2">
+                        {currentBracket.grandFinal.teamA}
+                      </span>
+                      <span className="text-brand font-black shrink-0">
+                        {currentBracket.grandFinal.scoreA}
                       </span>
                     </div>
 
-                    <div className="p-2.5 sm:p-3 space-y-2">
-                      <div className="flex items-center justify-between px-2.5 sm:px-3 py-1.5 sm:py-2 bg-surface border-2 border-ink">
-                        <span className="text-xs sm:text-sm font-bold text-ink truncate mr-2">{match.teamA}</span>
-                        <span className="font-mono text-xs sm:text-sm font-black shrink-0">{match.scoreA}</span>
-                      </div>
-                      <div className="flex items-center justify-between px-2.5 sm:px-3 py-1.5 sm:py-2 bg-surface border-2 border-ink">
-                        <span className="text-xs sm:text-sm font-bold text-ink truncate mr-2">{match.teamB}</span>
-                        <span className="font-mono text-xs sm:text-sm font-black shrink-0">{match.scoreB}</span>
-                      </div>
+                    <div
+                      className={`flex justify-between items-center py-1.5 ${
+                        filterTeamHighlight(currentBracket.grandFinal.teamB)
+                          ? 'bg-[#fef08a] px-1 font-black ring-2 ring-ink'
+                          : ''
+                      }`}
+                    >
+                      <span className="text-ink truncate font-bold mr-2">
+                        {currentBracket.grandFinal.teamB}
+                      </span>
+                      <span className="text-brand font-black shrink-0">
+                        {currentBracket.grandFinal.scoreB}
+                      </span>
                     </div>
                   </div>
-                ))}
+                </div>
+
+                {/* Kartu Perebutan Juara 3 */}
+                <div className="border-2 border-ink bg-white p-3.5 sm:p-4 shadow-brutal-sm mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs bg-surface border border-ink px-2 sm:px-2.5 py-1 font-black uppercase">
+                      PEREBUTAN JUARA 3
+                    </span>
+                    <span className="font-mono text-[11px] text-ink/70 font-semibold">SEBELUM FINAL</span>
+                  </div>
+                  <p className="font-mono text-[11px] text-ink/70 mt-1 font-bold">Laga Runner-Up Semifinal</p>
+                  <div className="mt-2 text-xs sm:text-sm font-mono font-bold text-ink space-y-1.5">
+                    <div className="p-2 bg-surface border border-ink/40 truncate">
+                      Kalah SF-01 (Runner-Up A)
+                    </div>
+                    <div className="p-2 bg-surface border border-ink/40 truncate">
+                      Kalah SF-02 (Runner-Up B)
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* KOLOM 4: GRAND FINAL & JUARA 3 */}
-            <div className="flex flex-col justify-between">
-              <div className="border-2 border-ink bg-[#fef08a] p-4 sm:p-5 shadow-brutal text-center relative">
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-ink text-white px-3.5 py-1 font-mono text-[10px] sm:text-xs font-black uppercase border border-ink shadow-brutal-sm whitespace-nowrap">
-                  PUNCAK PIALA BUPATI
-                </div>
-
-                <div className="flex justify-center my-2 sm:my-3">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-ink bg-brand text-white flex items-center justify-center shadow-brutal-sm">
-                    <Trophy size={24} className="sm:size-7" />
-                  </div>
-                </div>
-
-                <h3 className="font-display text-lg sm:text-2xl font-black uppercase text-ink">
-                  GRAND FINAL
-                </h3>
-                <p className="font-mono text-xs sm:text-sm text-ink/80 mt-1 font-bold">
-                  {currentBracket.grandFinal.dateStr} • {currentBracket.grandFinal.time}
-                </p>
-
-                <div className="mt-3 sm:mt-4 p-3 sm:p-3.5 bg-white border-2 border-ink space-y-2 text-left font-mono text-xs sm:text-sm font-bold">
-                  <div className="flex justify-between items-center py-1.5 border-b border-ink/20">
-                    <span className="text-ink truncate font-bold mr-2">{currentBracket.grandFinal.teamA}</span>
-                    <span className="text-brand font-black shrink-0">{currentBracket.grandFinal.scoreA}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1.5">
-                    <span className="text-ink truncate font-bold mr-2">{currentBracket.grandFinal.teamB}</span>
-                    <span className="text-brand font-black shrink-0">{currentBracket.grandFinal.scoreB}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-2 border-ink bg-white p-3.5 sm:p-4 shadow-brutal-sm mt-4 sm:mt-6">
-                <span className="font-mono text-xs bg-surface border border-ink px-2 sm:px-2.5 py-1 font-black uppercase">
-                  PEREBUTAN JUARA 3
-                </span>
-                <p className="font-mono text-xs text-ink/70 mt-1 font-bold">Sebelum Laga Grand Final</p>
-                <div className="mt-2 text-xs sm:text-sm font-mono font-bold text-ink space-y-1.5">
-                  <div className="p-2 bg-surface border border-ink/40 truncate">Runner-up SF-01</div>
-                  <div className="p-2 bg-surface border border-ink/40 truncate">Runner-up SF-02</div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
